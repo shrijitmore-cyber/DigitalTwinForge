@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KES 22-8.5 · Digital Twin v3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;500;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #070b0f;
+  --bg2:      #0c1118;
+  --bg3:      #111820;
+  --panel:    #0e1520;
+  --border:   #1a2a3a;
+  --border2:  #223344;
+  --teal:     #00d4be;
+  --teal2:    #008a7e;
+  --teal-dim: #00453e;
+  --cyan:     #2adcff;
+  --amber:    #f6a820;
+  --red:      #ff4455;
+  --green:    #00ee88;
+  --yellow:   #ffe566;
+  --text:     #c8d8e8;
+  --text2:    #6e90b0;
+  --text3:    #344f68;
+  --mono:     'Share Tech Mono', monospace;
+  --sans:     'Barlow Condensed', sans-serif;
+  --body:     'Barlow', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto; /* Allows scrolling down to the charts */
+}
+
+/* ── LAYOUT: top-view (100vh) | chart-strip (below fold) ── */
+.app {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Viewport exactly matches screen height */
+.top-view {
+  display: grid;
+  grid-template-rows: 48px 1fr 60px;
+  grid-template-columns: 1fr 320px; /* Forces right panel to 320px strictly on right */
+  height: 100vh;
+  width: 100vw;
+}
+
+/* HEADER */
+header{
+  grid-column: 1 / -1;
+  grid-row: 1 / 2;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;gap:16px;
+}
+.hdr-logo{font-family:var(--sans);font-weight:800;font-size:17px;letter-spacing:3px;color:var(--teal);text-transform:uppercase}
+.hdr-sep{width:1px;height:26px;background:var(--border)}
+.hdr-meta{font-family:var(--sans);font-size:11px;color:var(--text2);letter-spacing:1px;text-transform:uppercase}
+.hdr-meta span{color:var(--text)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse-dot 1.5s ease-in-out infinite}
+.status-dot.idle{background:var(--text3);box-shadow:none;animation:none}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.35}}
+.status-label{font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:2px}
+.status-label.idle{color:var(--text3)}
+.hdr-time{font-family:var(--mono);font-size:13px;color:var(--cyan);letter-spacing:1px;min-width:75px;text-align:right}
+.phase-badge{font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;border-radius:2px;border:1px solid var(--teal2);color:var(--teal);background:rgba(0,212,190,.07);min-width:160px;text-align:center}
+
+/* SCHEMATIC AREA - CENTERED */
+.schematic-area{
+  grid-column: 1 / 2;
+  grid-row: 2 / 3;
+  display: flex;
+  justify-content: center; /* Centers model horizontally */
+  align-items: center;     /* Centers model vertically */
+  background: radial-gradient(circle at center, #0a1118 0%, var(--bg) 100%);
+  overflow: hidden;
+  padding: 20px;
+}
+.schematic-svg{
+  width: 100%;
+  max-width: 950px;
+  max-height: 100%;
+  display: block;
+  filter: drop-shadow(0 25px 35px rgba(0,0,0,0.6)); /* Extra 3D pop */
+}
+
+/* RIGHT PANEL */
+.right-panel{
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+  background:var(--panel);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow-y:auto;
+}
+.panel-section{border-bottom:1px solid var(--border);padding:14px 18px}
+.section-title{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+.metric-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(26,42,58,.5)}
+.metric-row:last-child{border-bottom:none}
+.metric-label{font-family:var(--sans);font-size:13px;font-weight:400;color:var(--text2);letter-spacing:.3px;flex:1}
+.metric-val{font-family:var(--mono);font-size:15px;color:var(--cyan);text-align:right;min-width:78px}
+.metric-val.hot{color:#ff6b35}
+.metric-val.warm{color:var(--amber)}
+.metric-val.ok{color:var(--green)}
+.metric-val.warn{color:var(--yellow)}
+.metric-val.alert{color:var(--red);animation:blink .8s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+.metric-unit{font-family:var(--sans);font-size:10px;color:var(--text3);margin-left:4px}
+.tol-row{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:4px;margin-bottom:4px;background:rgba(255,255,255,.02)}
+.tol-label{font-family:var(--sans);font-size:12px;color:var(--text2)}
+.tol-val{font-family:var(--mono);font-size:12px}
+.tol-badge{font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:1px;padding:2px 8px;border-radius:3px}
+.tol-badge.pass{background:rgba(0,230,118,.14);color:var(--green);border:1px solid rgba(0,230,118,.28)}
+.tol-badge.fail{background:rgba(255,68,68,.14);color:var(--red);border:1px solid rgba(255,68,68,.28)}
+
+/* CONTROLS */
+.controls{
+  grid-column: 1 / -1;
+  grid-row: 3 / 4;
+  background:var(--bg2);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;gap:14px;
+}
+.ctrl-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--teal);font-family:var(--mono);font-size:13px;width:34px;height:34px;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.ctrl-btn:hover{background:var(--teal-dim);border-color:var(--teal)}
+.ctrl-btn.active{background:var(--teal-dim);border-color:var(--teal)}
+.speed-group{display:flex;gap:3px;align-items:center}
+.speed-label{font-family:var(--sans);font-size:10px;color:var(--text3);letter-spacing:1px;margin-right:3px}
+.speed-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:3px;cursor:pointer;transition:all .15s}
+.speed-btn:hover{border-color:var(--teal2);color:var(--teal)}
+.speed-btn.active{background:var(--teal-dim);border-color:var(--teal);color:var(--teal)}
+.scrub-wrap{flex:1;display:flex;align-items:center;gap:8px}
+.scrub-label{font-family:var(--mono);font-size:10px;color:var(--text3);min-width:34px}
+input[type=range]{-webkit-appearance:none;flex:1;height:3px;border-radius:2px;background:var(--border2);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--teal);box-shadow:0 0 5px var(--teal2);cursor:pointer}
+.elapsed-disp{font-family:var(--mono);font-size:11px;color:var(--amber);min-width:58px;text-align:right}
+.ctrl-sep{width:1px;height:28px;background:var(--border)}
+.load-btn{background:var(--teal-dim);border:1px solid var(--teal2);color:var(--teal);font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:1px;padding:6px 13px;border-radius:3px;cursor:pointer;transition:all .15s;text-transform:uppercase}
+.load-btn:hover{background:rgba(0,212,190,.22)}
+
+/* CHART STRIP - SCROLL DOWN TO SEE (BIGGER) */
+.chart-strip{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap: 24px;
+  padding: 30px;
+  background: var(--bg);
+  height: 450px; /* Force large height */
+}
+.chart-cell{
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px 24px;
+  display:flex;flex-direction:column;
+  min-height:0;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+}
+.chart-cell-title{
+  font-family:var(--sans);font-size:12px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;
+  color:var(--text3);margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+}
+.chart-cell-val{
+  font-family:var(--mono);font-size:26px;
+  margin-bottom:12px;
+}
+.chart-cell canvas{flex:1;min-height:0; width:100% !important;}
+
+/* fan */
+#fan-rotor{transform-box:fill-box;transform-origin:center;animation:spin-fan .75s linear infinite}
+#fan-rotor.slow{animation-duration:2.2s}
+#fan-rotor.stopped{animation:none}
+@keyframes spin-fan{to{transform:rotate(360deg)}}
+
+/* pipe dash animations */
+@keyframes da{to{stroke-dashoffset:-22}}
+@keyframes db{to{stroke-dashoffset:-22}}
+@keyframes dc{to{stroke-dashoffset:-22}}
+@keyframes dd{to{stroke-dashoffset:-22}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="top-view">
+  
+  <header>
+    <div class="hdr-logo">KES 22-8.5</div>
+    <div class="hdr-sep"></div>
+    <div class="hdr-meta">Serial <span>SCR0010046 T1</span></div>
+    <div class="hdr-sep"></div>
+    <div class="hdr-meta">WP <span>8 kg/cm²g</span></div>
+    <div class="hdr-sep"></div>
+    <div class="hdr-meta">FAD <span>127 CFM</span></div>
+    <div class="hdr-right">
+      <div class="phase-badge" id="phase-badge">IDLE</div>
+      <div class="hdr-sep"></div>
+      <div class="status-dot idle" id="status-dot"></div>
+      <div class="status-label idle" id="status-label">STANDBY</div>
+      <div class="hdr-sep"></div>
+      <div class="hdr-time" id="clock-disp">--:--:--</div>
+    </div>
+  </header>
+
+  <div class="schematic-area">
+  <svg class="schematic-svg" viewBox="0 0 880 480" xmlns="http://www.w3.org/2000/svg" id="main-svg">
+  <defs>
+    <linearGradient id="g-cab-top" x1="0" y1="0" x2=".3" y2="1"><stop offset="0%" stop-color="#2c3e50"/><stop offset="100%" stop-color="#141e28"/></linearGradient>
+    <linearGradient id="g-cab-l"   x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#050a0f"/><stop offset="100%" stop-color="#09121a"/></linearGradient>
+    <linearGradient id="g-cab-r"   x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1c2d40"/><stop offset="100%" stop-color="#111e2c"/></linearGradient>
+    <linearGradient id="g-mot-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2a4a6c"/><stop offset="100%" stop-color="#0e2236"/></linearGradient>
+    <linearGradient id="g-mot-l"   x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#040c15"/><stop offset="100%" stop-color="#0b1e30"/></linearGradient>
+    <linearGradient id="g-mot-r"   x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#182a4a"/><stop offset="100%" stop-color="#0e1a32"/></linearGradient>
+    <linearGradient id="g-air-top" x1="0" y1="0" x2=".2" y2="1"><stop offset="0%" stop-color="#184a42"/><stop offset="100%" stop-color="#071e1a"/></linearGradient>
+    <linearGradient id="g-air-l"   x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#030e0c"/><stop offset="100%" stop-color="#091e1c"/></linearGradient>
+    <linearGradient id="g-air-r"   x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#12382c"/><stop offset="100%" stop-color="#0d2822"/></linearGradient>
+    <linearGradient id="g-aos-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#354418"/><stop offset="100%" stop-color="#131808"/></linearGradient>
+    <linearGradient id="g-aos-l"   x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#060a03"/><stop offset="100%" stop-color="#101808"/></linearGradient>
+    <linearGradient id="g-aos-r"   x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a2b0e"/><stop offset="100%" stop-color="#111c08"/></linearGradient>
+    <linearGradient id="g-oc-top"  x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4a3000"/><stop offset="100%" stop-color="#1e1200"/></linearGradient>
+    <linearGradient id="g-oc-l"    x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#0a0600"/><stop offset="100%" stop-color="#1a1000"/></linearGradient>
+    <linearGradient id="g-oc-r"    x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#362200"/><stop offset="100%" stop-color="#1e1000"/></linearGradient>
+    <linearGradient id="g-ac-top"  x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e364a"/><stop offset="100%" stop-color="#071018"/></linearGradient>
+    <linearGradient id="g-ac-l"    x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#03060a"/><stop offset="100%" stop-color="#091220"/></linearGradient>
+    <linearGradient id="g-ac-r"    x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#14243a"/><stop offset="100%" stop-color="#0a162a"/></linearGradient>
+    <linearGradient id="g-flt-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1c3e28"/><stop offset="100%" stop-color="#091a10"/></linearGradient>
+    <linearGradient id="g-flt-l"   x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#030a07"/><stop offset="100%" stop-color="#091612"/></linearGradient>
+    <linearGradient id="g-skid-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#182635"/><stop offset="100%" stop-color="#0b141e"/></linearGradient>
+    <linearGradient id="g-heat" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#ff5522" stop-opacity=".8"/>
+      <stop offset="60%" stop-color="#ff8833" stop-opacity=".4"/>
+      <stop offset="100%" stop-color="#ffaa44" stop-opacity=".0"/>
+    </linearGradient>
+
+    <linearGradient id="g-spec" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".12"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity=".03"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="fshadow" x="-30%" y="-30%" width="180%" height="180%">
+      <feDropShadow dx="12" dy="22" stdDeviation="10" flood-color="#000" flood-opacity=".75"/>
+    </filter>
+    <filter id="fshadow-sm" x="-20%" y="-20%" width="150%" height="160%">
+      <feDropShadow dx="5" dy="10" stdDeviation="6" flood-color="#000" flood-opacity=".65"/>
+    </filter>
+    <filter id="fglow-teal">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <marker id="m-air"  markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#2adcff"/></marker>
+    <marker id="m-hot"  markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#ff6b35"/></marker>
+    <marker id="m-oil"  markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#f6a820"/></marker>
+    <marker id="m-cool" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#44ffcc"/></marker>
+
+    <clipPath id="clip-ae"><polygon points="358,168 434,128 434,268 358,242"/></clipPath>
+  </defs>
+
+  <polygon points="120,380 440,200 760,380 440,560" fill="#2adcff" filter="blur(50px)" opacity="0.05"/>
+  <g opacity="0.1" stroke="#2adcff" stroke-width="1.5">
+    <polygon points="120,380 440,200 760,380 440,560" fill="none" stroke-width="2"/>
+    <line x1="280" y1="290" x2="600" y2="470" stroke-width="0.8" />
+    <line x1="600" y1="290" x2="280" y2="470" stroke-width="0.8" />
+    <line x1="200" y1="335" x2="520" y2="515" stroke-width="0.5" />
+    <line x1="680" y1="335" x2="360" y2="515" stroke-width="0.5" />
+    <line x1="520" y1="245" x2="200" y2="425" stroke-width="0.5" />
+    <line x1="360" y1="245" x2="680" y2="425" stroke-width="0.5" />
+  </g>
+
+  <g transform="translate(0, 15)">
+    <g filter="url(#fshadow)">
+      <polygon points="178,372 510,190 698,302 366,484" fill="url(#g-skid-top)" stroke="#1a2d3a" stroke-width="1.2"/>
+      <polygon points="178,372 510,190 698,302 366,484" fill="url(#g-spec)"/>
+      <polygon points="178,372 366,484 366,500 178,388" fill="#080f18" stroke="#121e28" stroke-width="1"/>
+      <polygon points="510,190 698,302 698,318 510,206" fill="#0c1826" stroke="#121e28" stroke-width="1"/>
+    </g>
+    <text x="436" y="450" font-family="'Barlow Condensed'" font-size="9" fill="#24384a" text-anchor="middle" letter-spacing="2" font-weight="600">BASE FRAME / SKID · KES 22-8.5</text>
+
+    <g filter="url(#fshadow)">
+      <polygon points="196,188 506,18 686,118 376,288" fill="url(#g-cab-top)" stroke="#2a4255" stroke-width="2"/>
+      <polygon points="196,188 506,18 686,118 376,288" fill="url(#g-spec)"/>
+      <polygon points="196,188 376,288 376,370 196,270" fill="url(#g-cab-l)" stroke="#121e2c" stroke-width="1.5"/>
+      <polygon points="376,288 686,118 686,200 376,370" fill="url(#g-cab-r)" stroke="#1a2c3c" stroke-width="1.5"/>
+    </g>
+    <line x1="196" y1="188" x2="506" y2="18"  stroke="#3e5a6e" stroke-width="2"/>
+    <line x1="506" y1="18"  x2="686" y2="118" stroke="#324a5a" stroke-width="2"/>
+    <line x1="196" y1="188" x2="196" y2="270" stroke="#1e3040" stroke-width="2"/>
+    <line x1="686" y1="118" x2="686" y2="200" stroke="#1e3040" stroke-width="2"/>
+    <polygon points="196,188 356,108 356,285 196,365" fill="#00d4be" opacity=".03" stroke="#00d4be" stroke-width="1" stroke-opacity=".15"/>
+    <polygon points="356,108 506,18 686,118 686,200 376,370 356,285" fill="#2adcff" opacity=".02" stroke="#2adcff" stroke-width="1" stroke-opacity=".1"/>
+
+    <g filter="url(#fshadow-sm)">
+      <ellipse cx="292" cy="204" rx="48" ry="22" fill="url(#g-mot-top)" stroke="#2a6296" stroke-width="1.8"/>
+      <ellipse cx="292" cy="204" rx="48" ry="22" fill="url(#g-spec)"/>
+      <polygon points="246,204 246,278 292,284 292,224" fill="url(#g-mot-l)" stroke="#1a3e68" stroke-width="1.3"/>
+      <polygon points="292,224 292,284 340,278 340,204" fill="url(#g-mot-r)" stroke="#1e4a7a" stroke-width="1.5"/>
+      <ellipse cx="292" cy="228" rx="47" ry="21" fill="none" stroke="#2a6296" stroke-width="1.2" opacity=".6"/>
+      <ellipse cx="292" cy="243" rx="47" ry="21" fill="none" stroke="#3a80c0" stroke-width="1"   opacity=".4"/>
+      <ellipse cx="292" cy="258" rx="47" ry="21" fill="none" stroke="#2a6296" stroke-width="1.2" opacity=".6"/>
+      <ellipse cx="292" cy="204" rx="48" ry="22" fill="none" stroke="#4a8acc" stroke-width="1" opacity=".5"/>
+    </g>
+    <rect x="337" y="234" width="20" height="9" rx="3" fill="#162840" stroke="#2adcff" stroke-width="1" opacity=".6"/>
+
+    <g filter="url(#fshadow-sm)">
+      <polygon points="358,168 434,128 500,162 424,202" fill="url(#g-air-top)" stroke="#00c8b0" stroke-width="2"/>
+      <polygon points="358,168 434,128 500,162 424,202" fill="url(#g-spec)"/>
+      <polygon points="358,168 424,202 424,282 358,248" fill="url(#g-air-l)" stroke="#009985" stroke-width="1.5"/>
+      <polygon id="airend-fill" points="358,248 424,282 424,282 358,248" fill="url(#g-heat)" clip-path="url(#clip-ae)" opacity=".9"/>
+      <polygon points="424,202 500,162 500,244 424,282" fill="url(#g-air-r)" stroke="#00b098" stroke-width="1.5"/>
+      <path d="M366,212 Q372,207 378,212 Q384,217 390,212 Q396,207 402,212 Q408,217 414,212 Q420,207 424,210" fill="none" stroke="#00c8b0" stroke-width="1.5" opacity=".7"/>
+      <path d="M366,222 Q372,217 378,222 Q384,227 390,222 Q396,217 402,222 Q408,227 414,222 Q420,217 424,220" fill="none" stroke="#00c8b0" stroke-width="1.5" opacity=".7"/>
+      <path d="M366,232 Q372,227 378,232 Q384,237 390,232 Q396,227 402,232 Q408,237 414,232 Q420,227 424,230" fill="none" stroke="#008a78" stroke-width="1.2" opacity=".5"/>
+      <path d="M366,242 Q372,237 378,242 Q384,247 390,242 Q396,237 402,242 Q408,247 414,242 Q420,237 424,240" fill="none" stroke="#008a78" stroke-width="1.2" opacity=".4"/>
+      <polygon points="358,168 434,128 500,162 424,202" fill="none" stroke="#44ffcc" stroke-width=".8" opacity=".4"/>
+    </g>
+
+    <g filter="url(#fshadow-sm)">
+      <ellipse cx="548" cy="172" rx="42" ry="20" fill="url(#g-aos-top)" stroke="#7ab000" stroke-width="2"/>
+      <ellipse cx="548" cy="172" rx="42" ry="20" fill="url(#g-spec)"/>
+      <polygon points="508,172 508,300 548,312 548,184" fill="url(#g-aos-l)" stroke="#4a6800" stroke-width="1.2"/>
+      <polygon points="548,184 548,312 590,300 590,172" fill="url(#g-aos-r)" stroke="#5a8000" stroke-width="1.4"/>
+      <ellipse cx="548" cy="220" rx="30" ry="14" fill="none" stroke="#6a9800" stroke-width="1.2" stroke-dasharray="5 3" opacity=".6"/>
+      <ellipse cx="548" cy="255" rx="30" ry="14" fill="none" stroke="#4a6800" stroke-width="1" stroke-dasharray="4 3" opacity=".4"/>
+      <ellipse cx="548" cy="172" rx="42" ry="20" fill="none" stroke="#aaff00" stroke-width="1" opacity=".4"/>
+    </g>
+
+    <g filter="url(#fshadow-sm)">
+      <polygon points="596,148 660,112 702,134 638,170" fill="url(#g-oc-top)" stroke="#b07a00" stroke-width="2"/>
+      <polygon points="596,148 660,112 702,134 638,170" fill="url(#g-spec)"/>
+      <polygon points="596,148 638,170 638,256 596,234" fill="url(#g-oc-l)" stroke="#7a5000" stroke-width="1.2"/>
+      <line x1="602" y1="158" x2="602" y2="244" stroke="#6a4500" stroke-width="1.4"/>
+      <line x1="608" y1="155" x2="608" y2="241" stroke="#6a4500" stroke-width="1.4"/>
+      <line x1="614" y1="153" x2="614" y2="239" stroke="#6a4500" stroke-width="1.4"/>
+      <line x1="620" y1="150" x2="620" y2="236" stroke="#6a4500" stroke-width="1.4"/>
+      <line x1="626" y1="148" x2="626" y2="234" stroke="#6a4500" stroke-width="1.4"/>
+      <line x1="632" y1="146" x2="632" y2="232" stroke="#5a3a00" stroke-width="1.4"/>
+      <polygon points="638,170 702,134 702,220 638,256" fill="url(#g-oc-r)" stroke="#8a5a00" stroke-width="1.4"/>
+      <polygon points="596,148 660,112 702,134 638,170" fill="none" stroke="#f6a820" stroke-width="1" opacity=".4"/>
+    </g>
+
+    <g filter="url(#fshadow-sm)">
+      <polygon points="596,234 660,198 702,220 638,256" fill="url(#g-ac-top)" stroke="#2a6296" stroke-width="2"/>
+      <polygon points="596,234 660,198 702,220 638,256" fill="url(#g-spec)"/>
+      <polygon points="596,234 638,256 638,344 596,322" fill="url(#g-ac-l)" stroke="#183e66" stroke-width="1.2"/>
+      <line x1="602" y1="244" x2="602" y2="332" stroke="#1c4470" stroke-width="1.4"/>
+      <line x1="608" y1="241" x2="608" y2="329" stroke="#1c4470" stroke-width="1.4"/>
+      <line x1="614" y1="239" x2="614" y2="327" stroke="#1c4470" stroke-width="1.4"/>
+      <line x1="620" y1="236" x2="620" y2="324" stroke="#1c4470" stroke-width="1.4"/>
+      <line x1="626" y1="234" x2="626" y2="322" stroke="#1c4470" stroke-width="1.4"/>
+      <line x1="632" y1="232" x2="632" y2="320" stroke="#163258" stroke-width="1.4"/>
+      <polygon points="638,256 702,220 702,308 638,344" fill="url(#g-ac-r)" stroke="#225282" stroke-width="1.4"/>
+      <polygon points="596,234 660,198 702,220 638,256" fill="none" stroke="#4a8acc" stroke-width="1" opacity=".4"/>
+    </g>
+
+    <g filter="url(#fshadow-sm)">
+      <polygon points="218,276 268,250 298,265 248,291" fill="url(#g-flt-top)" stroke="#3a8050" stroke-width="1.8"/>
+      <polygon points="218,276 268,250 298,265 248,291" fill="url(#g-spec)"/>
+      <polygon points="218,276 248,291 248,338 218,323" fill="url(#g-flt-l)" stroke="#1e4a30" stroke-width="1.2"/>
+      <line x1="224" y1="284" x2="224" y2="331" stroke="#225236" stroke-width="1.3"/>
+      <line x1="230" y1="281" x2="230" y2="328" stroke="#225236" stroke-width="1.3"/>
+      <line x1="236" y1="279" x2="236" y2="326" stroke="#225236" stroke-width="1.3"/>
+      <polygon points="248,291 298,265 298,312 248,338" fill="#0a1c13" stroke="#2a6040" stroke-width="1.4"/>
+      <polygon points="218,276 268,250 298,265 248,291" fill="none" stroke="#44cc88" stroke-width="1" opacity=".4"/>
+    </g>
+
+    <g filter="url(#fshadow-sm)">
+      <polygon points="540,44 626,84 626,178 540,138" fill="#0e1828" stroke="#2a4255" stroke-width="1.8"/>
+      <polygon points="550,58 592,77 592,112 550,93" fill="#060e18" stroke="#2a6296" stroke-width="1.3"/>
+      <polygon points="550,58 592,77 592,112 550,93" fill="#001428" opacity=".6"/>
+      <circle cx="616" cy="98" r="9" fill="#4a0000" stroke="#ee3344" stroke-width="2"/>
+      <circle cx="616" cy="98" r="5" fill="#a00018" stroke="#ff5566" stroke-width="1"/>
+      <polygon points="540,138 626,178 626,186 540,146" fill="#0c1420" stroke="#1e3040" stroke-width=".8"/>
+    </g>
+
+    <ellipse cx="418" cy="110" rx="50" ry="24" fill="#080f0e" stroke="#00b098" stroke-width="2"/>
+    <ellipse cx="418" cy="110" rx="42" ry="18" fill="#0b1a18" stroke="#008a78" stroke-width="1.2"/>
+    <line x1="376" y1="110" x2="460" y2="110" stroke="#005a50" stroke-width="1" opacity=".6"/>
+    <line x1="381" y1="100" x2="455" y2="120" stroke="#005a50" stroke-width="1" opacity=".5"/>
+    <line x1="381" y1="120" x2="455" y2="100" stroke="#005a50" stroke-width="1" opacity=".5"/>
+    <g id="fan-rotor">
+      <ellipse cx="418" cy="110" rx="5" ry="17" fill="#00d4be" opacity=".9"/>
+      <ellipse cx="418" cy="110" rx="5" ry="17" fill="#00d4be" opacity=".9" transform="rotate(72,418,110)"/>
+      <ellipse cx="418" cy="110" rx="5" ry="17" fill="#00d4be" opacity=".9" transform="rotate(144,418,110)"/>
+      <ellipse cx="418" cy="110" rx="5" ry="17" fill="#00d4be" opacity=".9" transform="rotate(216,418,110)"/>
+      <ellipse cx="418" cy="110" rx="5" ry="17" fill="#00d4be" opacity=".9" transform="rotate(288,418,110)"/>
+    </g>
+    <circle cx="418" cy="110" r="4" fill="#00b098"/>
+    <ellipse cx="418" cy="110" rx="50" ry="24" fill="none" stroke="#44ffcc" stroke-width="1.5" opacity=".6"/>
+
+    <rect x="700" y="192" width="42" height="16" rx="4" fill="#162840" stroke="#2adcff" stroke-width="2"/>
+    <circle cx="742" cy="200" r="7" fill="none" stroke="#2adcff" stroke-width="1.5"/>
+    <line x1="742" y1="193" x2="742" y2="207" stroke="#2adcff" stroke-width="1.2"/>
+    <line x1="735" y1="200" x2="749" y2="200" stroke="#2adcff" stroke-width="1.2"/>
+
+    <circle cx="138" cy="310" r="28" fill="#080d14" stroke="#2a4255" stroke-width="2"/>
+    <circle cx="138" cy="310" r="22" fill="none" stroke="#1c2d40" stroke-width="1" stroke-dasharray="3 2"/>
+
+    <path id="pipe-atm-flt" d="M166,310 Q192,296 218,284" fill="none" stroke="#2adcff" stroke-width="5" stroke-linecap="round" stroke-dasharray="9 6" style="animation:da 1.1s linear infinite" marker-end="url(#m-air)"/>
+    <path d="M166,310 Q192,296 218,284" fill="none" stroke="#88eeff" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+
+    <path d="M298,278 Q328,262 358,236" fill="none" stroke="#2adcff" stroke-width="5" stroke-linecap="round" stroke-dasharray="9 6" style="animation:da 1.1s linear infinite" marker-end="url(#m-air)"/>
+    <path d="M298,278 Q328,262 358,236" fill="none" stroke="#88eeff" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+
+    <path d="M500,200 L500,190 L510,184" fill="none" stroke="#ff6b35" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="9 6" style="animation:db .85s linear infinite" marker-end="url(#m-hot)"/>
+    <path d="M500,200 L500,190 L510,184" fill="none" stroke="#ffaa77" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>
+
+    <path d="M588,186 L596,182 L596,162" fill="none" stroke="#ff8844" stroke-width="4" stroke-linecap="round" stroke-dasharray="8 5" style="animation:db 1.0s linear infinite" marker-end="url(#m-hot)"/>
+    <path d="M588,186 L596,182 L596,162" fill="none" stroke="#ffcc88" stroke-width="1.2" stroke-linecap="round" opacity=".45"/>
+
+    <path d="M588,226 L596,222 L596,248" fill="none" stroke="#ff8844" stroke-width="4" stroke-linecap="round" stroke-dasharray="8 5" style="animation:db 1.2s linear infinite" marker-end="url(#m-hot)"/>
+    <path d="M588,226 L596,222 L596,248" fill="none" stroke="#ffcc88" stroke-width="1.2" stroke-linecap="round" opacity=".45"/>
+
+    <path d="M702,262 L702,208" fill="none" stroke="#44ffcc" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="9 6" style="animation:dd 1.2s linear infinite" marker-end="url(#m-cool)"/>
+    <path d="M702,262 L702,208" fill="none" stroke="#aafff0" stroke-width="1.5" stroke-linecap="round" opacity=".45"/>
+
+    <path d="M548,312 L548,330 L590,330 L596,256" fill="none" stroke="#f6a820" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="9 6" style="animation:dc .85s linear infinite" marker-end="url(#m-oil)"/>
+    <path d="M548,312 L548,330 L590,330 L596,256" fill="none" stroke="#ffdd88" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".45"/>
+
+    <path d="M596,195 Q566,184 500,196" fill="none" stroke="#44ffcc" stroke-width="4" stroke-linecap="round" stroke-dasharray="9 6" style="animation:dd 1.5s linear infinite reverse" marker-end="url(#m-cool)"/>
+    <path d="M596,195 Q566,184 500,196" fill="none" stroke="#aafff0" stroke-width="1.2" stroke-linecap="round" opacity=".45"/>
+
+    <line x1="418" y1="135" x2="418" y2="148" stroke="#00d4be" stroke-width="2.5" stroke-dasharray="5 3" marker-end="url(#m-cool)"/>
+    <path d="M540,128 Q440,170 338,238" fill="none" stroke="#2a6296" stroke-width="1.5" stroke-dasharray="6 4" opacity=".6"/>
+
+    <line x1="500" y1="222" x2="525" y2="215" stroke="#00d4be" stroke-width="1" opacity=".6"/>
+    <circle cx="500" cy="222" r="3" fill="#00d4be"/>
+    <rect x="526" y="198" width="106" height="34" rx="4" fill="#071614" stroke="#00c8b0" stroke-width="1.5" filter="url(#fglow-teal)"/>
+    <text x="538" y="210" font-family="'Barlow Condensed'" font-size="8" fill="#4ab8a8" letter-spacing="1.5">DISCHARGE TEMP</text>
+    <text id="sv-airend-temp" x="538" y="226" font-family="'Share Tech Mono'" font-size="14" fill="#00d4be">--.- °C</text>
+
+    <line x1="292" y1="284" x2="292" y2="296" stroke="#2adcff" stroke-width="1" opacity=".6"/>
+    <circle cx="292" cy="284" r="3" fill="#2adcff"/>
+    <rect x="252" y="298" width="80" height="28" rx="3" fill="#070f1a" stroke="#2a6296" stroke-width="1.2"/>
+    <text x="262" y="309" font-family="'Barlow Condensed'" font-size="8" fill="#4a8acc" letter-spacing="1">OUTPUT</text>
+    <text id="sv-motor-pw" x="262" y="321" font-family="'Share Tech Mono'" font-size="11" fill="#2adcff">-- kW</text>
+
+    <line x1="548" y1="312" x2="548" y2="322" stroke="#aaee00" stroke-width="1" opacity=".6"/>
+    <circle cx="548" cy="312" r="3" fill="#aaee00"/>
+    <rect x="508" y="324" width="80" height="28" rx="3" fill="#0a1404" stroke="#6a9800" stroke-width="1.2"/>
+    <text x="518" y="335" font-family="'Barlow Condensed'" font-size="8" fill="#8ab820" letter-spacing="1">AOS PRES.</text>
+    <text id="sv-aos-pres" x="518" y="347" font-family="'Share Tech Mono'" font-size="11" fill="#aaee00">-- kg/cm²</text>
+
+    <line x1="596" y1="213" x2="660" y2="213" stroke="#f6a820" stroke-width="1" opacity=".5"/>
+    <circle cx="596" cy="213" r="2.5" fill="#f6a820"/>
+    <rect x="660" y="200" width="100" height="28" rx="3" fill="#120b00" stroke="#a07000" stroke-width="1.2"/>
+    <text x="670" y="211" font-family="'Barlow Condensed'" font-size="8" fill="#c09020" letter-spacing="1">OIL COOLER</text>
+    <rect id="sb-oci" x="660" y="216" width="46" height="12" rx="2" fill="#0e0800" stroke="#805000" stroke-width=".8"/>
+    <text id="sv-oci" x="683" y="222" font-family="'Share Tech Mono'" font-size="8.5" fill="#f6a820" text-anchor="middle" dominant-baseline="central">--°C</text>
+    <rect id="sb-oco" x="710" y="216" width="46" height="12" rx="2" fill="#0e0800" stroke="#805000" stroke-width=".8"/>
+    <text id="sv-oco" x="733" y="222" font-family="'Share Tech Mono'" font-size="8.5" fill="#f6a820" text-anchor="middle" dominant-baseline="central">--°C</text>
+    <text x="683" y="232" font-family="'Barlow Condensed'" font-size="7.5" fill="#906820" text-anchor="middle">IN</text>
+    <text x="733" y="232" font-family="'Barlow Condensed'" font-size="7.5" fill="#906820" text-anchor="middle">OUT</text>
+
+    <line x1="596" y1="300" x2="660" y2="300" stroke="#2adcff" stroke-width="1" opacity=".5"/>
+    <circle cx="596" cy="300" r="2.5" fill="#2adcff"/>
+    <rect x="660" y="287" width="100" height="28" rx="3" fill="#060e18" stroke="#2a6296" stroke-width="1.2"/>
+    <text x="670" y="298" font-family="'Barlow Condensed'" font-size="8" fill="#4a8acc" letter-spacing="1">AFTER COOLER</text>
+    <rect id="sb-aci" x="660" y="303" width="46" height="12" rx="2" fill="#050b14" stroke="#1c4470" stroke-width=".8"/>
+    <text id="sv-aci" x="683" y="309" font-family="'Share Tech Mono'" font-size="8.5" fill="#2adcff" text-anchor="middle" dominant-baseline="central">--°C</text>
+    <rect id="sb-aco" x="710" y="303" width="46" height="12" rx="2" fill="#050b14" stroke="#1c4470" stroke-width=".8"/>
+    <text id="sv-aco" x="733" y="309" font-family="'Share Tech Mono'" font-size="8.5" fill="#44ffcc" text-anchor="middle" dominant-baseline="central">--°C</text>
+    <text x="683" y="319" font-family="'Barlow Condensed'" font-size="7.5" fill="#4a6a8a" text-anchor="middle">IN</text>
+    <text x="733" y="319" font-family="'Barlow Condensed'" font-size="7.5" fill="#4a6a8a" text-anchor="middle">OUT</text>
+
+    <line x1="248" y1="338" x2="210" y2="355" stroke="#44aa66" stroke-width="1" opacity=".6"/>
+    <circle cx="248" cy="338" r="3" fill="#44aa66"/>
+    <rect x="168" y="356" width="84" height="28" rx="3" fill="#070f0c" stroke="#3a8050" stroke-width="1.2"/>
+    <text x="178" y="367" font-family="'Barlow Condensed'" font-size="8" fill="#4ca060" letter-spacing="1">AIR INLET</text>
+    <text id="sv-air-inlet" x="178" y="379" font-family="'Share Tech Mono'" font-size="11" fill="#44cc88">--.- °C</text>
+
+    <text x="558" y="68" font-family="'Share Tech Mono'" font-size="7" fill="#4a8acc" text-anchor="start">KRMS V30</text>
+    <rect id="sb-pkg-pw" x="550" y="73" width="38" height="12" rx="1" fill="#040c18" stroke="#1c4470"/>
+    <text id="sv-pkg-pw" x="569" y="79" font-family="'Share Tech Mono'" font-size="7.5" fill="#2adcff" text-anchor="middle" dominant-baseline="central">-- kW</text>
+    <rect id="sb-voltage" x="550" y="87" width="38" height="12" rx="1" fill="#040c18" stroke="#1c4470"/>
+    <text id="sv-voltage" x="569" y="93" font-family="'Share Tech Mono'" font-size="7.5" fill="#2adcff" text-anchor="middle" dominant-baseline="central">--- V</text>
+    <rect id="sb-current" x="550" y="140" width="36" height="11" rx="1" fill="#040c18" stroke="#1c4470"/>
+    <text id="sv-current" x="568" y="146" font-family="'Share Tech Mono'" font-size="7" fill="#2adcff" text-anchor="middle" dominant-baseline="central">-- A</text>
+    <rect id="sb-pf" x="590" y="140" width="34" height="11" rx="1" fill="#040c18" stroke="#1c4470"/>
+    <text id="sv-pf" x="607" y="146" font-family="'Share Tech Mono'" font-size="7" fill="#2adcff" text-anchor="middle" dominant-baseline="central">PF --</text>
+
+    <line x1="742" y1="200" x2="762" y2="200" stroke="#2adcff" stroke-width="1" opacity=".6"/>
+    <circle cx="742" cy="200" r="3" fill="#2adcff"/>
+    <rect x="762" y="183" width="88" height="38" rx="3" fill="#060e18" stroke="#2a6296" stroke-width="1.3" filter="url(#fglow-teal)"/>
+    <text x="772" y="193" font-family="'Barlow Condensed'" font-size="8" fill="#4a8acc" letter-spacing="1">DELIVERY · 33mm</text>
+    <text id="sv-fad" x="772" y="206" font-family="'Share Tech Mono'" font-size="11" fill="#2adcff">--- CFM</text>
+    <text id="sv-deliv-pres" x="772" y="218" font-family="'Share Tech Mono'" font-size="10" fill="#5ab4e8">-.-- kg/cm²</text>
+
+    <text x="138" y="306" font-family="'Barlow Condensed'" font-size="9" fill="#8ab8cc" text-anchor="middle" font-weight="600">ATMOS</text>
+    <text x="138" y="318" font-family="'Barlow Condensed'" font-size="7.5" fill="#4a6a8a" text-anchor="middle">Ambient Air</text>
+    <rect id="sb-ambient" x="112" y="325" width="52" height="13" rx="2" fill="#060e18" stroke="#2a4255" stroke-width="1"/>
+    <text id="sv-ambient" x="138" y="332" font-family="'Share Tech Mono'" font-size="8.5" fill="#2adcff" text-anchor="middle" dominant-baseline="central">--.- °C</text>
+
+    <text x="418" y="88" font-family="'Barlow Condensed'" font-size="9" fill="#00d4be" text-anchor="middle" font-weight="700" letter-spacing="1.5">COOLING FAN · 1.1kW · 2870RPM</text>
+    <rect id="fan-status-bg" x="392" y="132" width="52" height="13" rx="2" fill="#061410" stroke="#009080" stroke-width="1"/>
+    <text id="fan-status-txt" x="418" y="139" font-family="'Barlow Condensed'" font-size="8" fill="#00d4be" text-anchor="middle" dominant-baseline="central" letter-spacing="1.5">RUNNING</text>
+
+    <text x="292" y="192" font-family="'Barlow Condensed'" font-size="11" fill="#5ab8ea" text-anchor="middle" font-weight="700" letter-spacing="1.5">MOTOR</text>
+    <text x="292" y="202" font-family="'Barlow Condensed'" font-size="8" fill="#3a8acc" text-anchor="middle">22 kW · 2930 RPM</text>
+
+    <text x="434" y="117" font-family="'Barlow Condensed'" font-size="12" fill="#00d4be" text-anchor="middle" font-weight="800" letter-spacing="2">AIREND</text>
+    <text x="434" y="127" font-family="'Barlow Condensed'" font-size="8" fill="#3aa090" text-anchor="middle">Screw Element</text>
+
+    <text x="548" y="161" font-family="'Barlow Condensed'" font-size="10" fill="#aaee00" text-anchor="middle" font-weight="700" letter-spacing="1">AOS TANK</text>
+    <text x="548" y="171" font-family="'Barlow Condensed'" font-size="7.5" fill="#6a9820" text-anchor="middle">Air-Oil Separator</text>
+
+    <text x="649" y="101" font-family="'Barlow Condensed'" font-size="10" fill="#f6a820" text-anchor="middle" font-weight="700" letter-spacing="1">OIL COOLER</text>
+    <text x="649" y="187" font-family="'Barlow Condensed'" font-size="10" fill="#4aaddc" text-anchor="middle" font-weight="700" letter-spacing="1">AFTER COOLER</text>
+
+    <text x="252" y="242" font-family="'Barlow Condensed'" font-size="9" fill="#44aa66" text-anchor="middle" font-weight="600" letter-spacing="1">SUCTION FILTER</text>
+    <text x="580" y="37" font-family="'Barlow Condensed'" font-size="9" fill="#4a8acc" text-anchor="middle" letter-spacing="1.5">CONTROL PANEL</text>
+
+    <text x="192" y="295" font-family="'Barlow Condensed'" font-size="8" fill="#3aa0cc" text-anchor="middle" letter-spacing="1">INLET AIR</text>
+    <text x="524" y="185" font-family="'Barlow Condensed'" font-size="8" fill="#ff8a55" text-anchor="middle" letter-spacing="1">HOT MIX</text>
+    <text x="570" y="172" font-family="'Barlow Condensed'" font-size="8" fill="#ee7633" text-anchor="middle" letter-spacing="1">COMPR AIR</text>
+    <text x="714" y="236" font-family="'Barlow Condensed'" font-size="8" fill="#3add98" letter-spacing="1">COOL AIR</text>
+    <text x="560" y="340" font-family="'Barlow Condensed'" font-size="8" fill="#d89828" text-anchor="middle" letter-spacing="1">HOT OIL</text>
+    <text x="548" y="178" font-family="'Barlow Condensed'" font-size="7.5" fill="#3a9878" text-anchor="middle" letter-spacing="1">OIL RETURN</text>
+
+    <g transform="translate(14,380)">
+      <rect width="290" height="42" rx="3" fill="#060a0f" stroke="#2a4255" stroke-width="1" opacity=".95"/>
+      <text x="8" y="12" font-family="'Barlow Condensed'" font-size="7.5" fill="#3a5a7a" letter-spacing="2">FLOW LEGEND</text>
+      <line x1="8" y1="21" x2="30" y2="21" stroke="#2adcff" stroke-width="3.5"/>
+      <text x="36" y="24" font-family="'Barlow Condensed'" font-size="8.5" fill="#8ab8cc">Inlet Air</text>
+      <line x1="8" y1="33" x2="30" y2="33" stroke="#ff6b35" stroke-width="3.5"/>
+      <text x="36" y="36" font-family="'Barlow Condensed'" font-size="8.5" fill="#8ab8cc">Hot Air+Oil Mix</text>
+      <line x1="100" y1="21" x2="122" y2="21" stroke="#f6a820" stroke-width="3.5"/>
+      <text x="128" y="24" font-family="'Barlow Condensed'" font-size="8.5" fill="#8ab8cc">Hot Oil</text>
+      <line x1="100" y1="33" x2="122" y2="33" stroke="#44ffcc" stroke-width="3.5"/>
+      <text x="128" y="36" font-family="'Barlow Condensed'" font-size="8.5" fill="#8ab8cc">Cooled Air / Oil Return</text>
+    </g>
+  </g>
+  </svg>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel-section">
+      <div class="section-title">Thermal</div>
+      <div class="metric-row"><span class="metric-label">Airend Discharge</span><span class="metric-val" id="pm-airend-temp">--.-<span class="metric-unit">°C</span></span></div>
+      <div class="metric-row"><span class="metric-label">Oil Cooler Inlet</span><span class="metric-val" id="pm-oci">--.-<span class="metric-unit">°C</span></span></div>
+      <div class="metric-row"><span class="metric-label">Oil Cooler Outlet</span><span class="metric-val" id="pm-oco">--.-<span class="metric-unit">°C</span></span></div>
+      <div class="metric-row"><span class="metric-label">After Cooler Inlet</span><span class="metric-val" id="pm-aci">--.-<span class="metric-unit">°C</span></span></div>
+      <div class="metric-row"><span class="metric-label">After Cooler Outlet</span><span class="metric-val" id="pm-aco">--.-<span class="metric-unit">°C</span></span></div>
+      <div class="metric-row"><span class="metric-label">Air Inlet</span><span class="metric-val" id="pm-air-inlet">--.-<span class="metric-unit">°C</span></span></div>
+    </div>
+    <div class="panel-section">
+      <div class="section-title">Pressure &amp; Flow</div>
+      <div class="metric-row"><span class="metric-label">Delivery Pressure</span><span class="metric-val" id="pm-pres">-.-<span class="metric-unit">kg/cm²</span></span></div>
+      <div class="metric-row"><span class="metric-label">AOS Tank</span><span class="metric-val" id="pm-aos">-.-<span class="metric-unit">kg/cm²</span></span></div>
+      <div class="metric-row"><span class="metric-label">FAD</span><span class="metric-val" id="pm-fad">---<span class="metric-unit">CFM</span></span></div>
+    </div>
+    <div class="panel-section">
+      <div class="section-title">Electrical</div>
+      <div class="metric-row"><span class="metric-label">Motor Output</span><span class="metric-val" id="pm-motor-pw">--.-<span class="metric-unit">kW</span></span></div>
+      <div class="metric-row"><span class="metric-label">Package Input</span><span class="metric-val" id="pm-pkg-pw">--.-<span class="metric-unit">kW</span></span></div>
+      <div class="metric-row"><span class="metric-label">Voltage</span><span class="metric-val" id="pm-voltage">---<span class="metric-unit">V</span></span></div>
+      <div class="metric-row"><span class="metric-label">Current</span><span class="metric-val" id="pm-current">--.-<span class="metric-unit">A</span></span></div>
+      <div class="metric-row"><span class="metric-label">Power Factor</span><span class="metric-val" id="pm-pf">-.-</span></div>
+    </div>
+    <div class="panel-section" style="flex:1;">
+      <div class="section-title">Test Tolerance</div>
+      <div class="tol-row"><span class="tol-label">Flow Tolerance</span><span class="tol-val" id="tol-flow-val" style="color:#2adcff">--%</span><span class="tol-badge pass" id="tol-flow-badge">--</span></div>
+      <div class="tol-row"><span class="tol-label">SPC Tolerance</span><span class="tol-val" id="tol-spc-val" style="color:#2adcff">--%</span><span class="tol-badge pass" id="tol-spc-badge">--</span></div>
+      <div style="margin-top:14px">
+        <div class="section-title">SPC</div>
+        <div class="metric-row"><span class="metric-label">Actual SPC</span><span class="metric-val" id="pm-spc">-.-<span class="metric-unit">kW/m³/min</span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="btn-play">▶</button>
+    <button class="ctrl-btn" id="btn-pause">⏸</button>
+    <button class="ctrl-btn" id="btn-reset">↩</button>
+    <div class="ctrl-sep"></div>
+    <div class="speed-group">
+      <span class="speed-label">SPEED</span>
+      <button class="speed-btn" data-speed="1">1×</button>
+      <button class="speed-btn active" data-speed="10">10×</button>
+      <button class="speed-btn" data-speed="30">30×</button>
+      <button class="speed-btn" data-speed="60">60×</button>
+      <button class="speed-btn" data-speed="120">120×</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <div class="scrub-wrap">
+      <span class="scrub-label">0:00</span>
+      <input type="range" id="scrubber" min="0" max="720" value="0" step="1"/>
+      <span class="scrub-label">3:00</span>
+    </div>
+    <div class="elapsed-disp" id="elapsed-disp">0:00:00</div>
+    <div class="ctrl-sep"></div>
+    <label class="load-btn" for="csv-upload">📂 Load CSV</label>
+    <input type="file" id="csv-upload" accept=".csv" style="display:none"/>
+  </div>
+</div> <div class="chart-strip">
+  <div class="chart-cell">
+    <div class="chart-cell-title">
+      <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#00d4be;box-shadow:0 0 8px #00d4be"></span>
+      Airend Discharge Temp
+    </div>
+    <div class="chart-cell-val" id="cv-airend" style="color:#00d4be">--.- °C</div>
+    <canvas id="chart-airend"></canvas>
+  </div>
+  <div class="chart-cell">
+    <div class="chart-cell-title">
+      <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#2adcff;box-shadow:0 0 8px #2adcff"></span>
+      FAD Output
+    </div>
+    <div class="chart-cell-val" id="cv-fad" style="color:#2adcff">--- CFM</div>
+    <canvas id="chart-fad"></canvas>
+  </div>
+  <div class="chart-cell">
+    <div class="chart-cell-title">
+      <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#5ab4e8;box-shadow:0 0 8px #5ab4e8"></span>
+      Motor Output Power
+    </div>
+    <div class="chart-cell-val" id="cv-motor" style="color:#5ab4e8">--.- kW</div>
+    <canvas id="chart-motor"></canvas>
+  </div>
+</div>
+
+</div><script>
+// ═══ STATE ═══════════════════════════════════════════════
+let data=[], currentIdx=0, playing=false, speed=10, tickInterval=null;
+let trendLabels=[], airVals=[], fadVals=[], motorVals=[];
+const WINDOW=60;
+
+// ═══ CHART FACTORY ════════════════════════════════════════
+function mkChart(id, color, yMin, yMax) {
+  return new Chart(document.getElementById(id).getContext('2d'), {
+    type:'line',
+    data:{ labels:[], datasets:[{ data:[], borderColor:color, borderWidth:2,
+      pointRadius:0, fill:true, backgroundColor:color.replace(')',',0.1)').replace('rgb','rgba'),
+      tension:0.4 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ display:false },
+        y:{ min:yMin, max:yMax,
+          grid:{ color:'rgba(26,42,58,0.7)' },
+          ticks:{ color:'#2a4060', font:{family:"'Share Tech Mono'",size:11}, maxTicksLimit:5 }
+        }
+      }
+    }
+  });
+}
+const chartAirend = mkChart('chart-airend','#00d4be', 25, 100);
+const chartFad    = mkChart('chart-fad',   '#2adcff', 0, 160);
+const chartMotor  = mkChart('chart-motor', '#5ab4e8', 0, 35);
+const allCharts   = [chartAirend, chartFad, chartMotor];
+
+// ═══ CSV LOAD ═════════════════════════════════════════════
+document.getElementById('csv-upload').addEventListener('change', function(e){
+  const file=e.target.files[0]; if(!file) return;
+  Papa.parse(file,{ header:true, dynamicTyping:true, complete:function(r){
+    data=r.data.filter(row=>row.elapsed_time_sec!=null);
+    currentIdx=0;
+    document.getElementById('scrubber').max=data.length-1;
+    document.getElementById('scrubber').value=0;
+    resetDisplay(); setStatus('LOADED','ok');
+    setTimeout(()=>{ allCharts.forEach(c=>c.resize()); },50);
+  }});
+});
+
+// ═══ PLAYBACK ════════════════════════════════════════════
+function startPlayback(){
+  if(!data.length){alert('Load a CSV first.');return;}
+  if(playing)return;
+  playing=true; setStatus('SIMULATING','active');
+  document.getElementById('btn-play').classList.add('active');
+  const ms=Math.max(50,15000/speed);
+  tickInterval=setInterval(()=>{
+    if(currentIdx>=data.length-1){stopPlayback();setStatus('COMPLETE','idle');return;}
+    currentIdx++;
+    document.getElementById('scrubber').value=currentIdx;
+    renderFrame(currentIdx);
+  },ms);
+}
+function stopPlayback(){
+  playing=false; clearInterval(tickInterval); tickInterval=null;
+  document.getElementById('btn-play').classList.remove('active');
+  if(currentIdx<data.length-1) setStatus('PAUSED','idle');
+}
+function resetPlayback(){
+  stopPlayback(); currentIdx=0;
+  document.getElementById('scrubber').value=0;
+  trendLabels=[]; airVals=[]; fadVals=[]; motorVals=[];
+  allCharts.forEach(c=>{ c.data.labels=[]; c.data.datasets[0].data=[]; c.update('none'); });
+  if(data.length) renderFrame(0); else resetDisplay();
+  setStatus('STANDBY','idle');
+}
+function setStatus(label,state){
+  const dot=document.getElementById('status-dot');
+  const lbl=document.getElementById('status-label');
+  dot.className='status-dot'+(state==='idle'?' idle':'');
+  lbl.className='status-label'+(state==='idle'?' idle':'');
+  lbl.textContent=label;
+}
+
+// ═══ RENDER FRAME ════════════════════════════════════════
+function renderFrame(idx){
+  const row=data[idx]; if(!row) return;
+  const el=row.elapsed_time_sec||0;
+  const h=Math.floor(el/3600), m=Math.floor((el%3600)/60), s=el%60;
+  const elStr=`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  document.getElementById('elapsed-disp').textContent=elStr;
+  document.getElementById('clock-disp').textContent=row.timestamp?row.timestamp.split(' ')[1]||elStr:elStr;
+
+  const phaseMap={'Phase1_Warmup':'WARMUP','Phase2_Stabilization':'STABILIZING','Phase3_StableRated':'RATED RUN','Phase4_UnloadCycle':'UNLOAD CYCLE'};
+  document.getElementById('phase-badge').textContent=phaseMap[row.phase]||row.phase||'--';
+
+  const at=row.airend_discharge_temp_c, pres=row.delivery_pressure_kg_cm2g;
+  const oci=row.oil_cooler_inlet_temp_c, oco=row.oil_cooler_outlet_temp_c;
+  const aci=row.aftercooler_inlet_temp_c, aco=row.aftercooler_outlet_temp_c;
+  const fad=row.fad_cfm, mpw=row.motor_output_power_kw, ppw=row.package_input_power_kw;
+  const volt=row.input_voltage_v, curr=row.current_package_input_a;
+  const aos=row.aos_tank_inlet_pressure_kg_cm2g, ait=row.air_inlet_temp_c;
+  const pf=row.power_factor, tf=row.tolerance_flow_pct, ts=row.tolerance_spc_pct;
+  const spc=row.spc_kw_per_m3_min;
+
+  const ratio=Math.max(0,Math.min(1,(at-30)/65));
+  const faceH=80;
+  const fillH=ratio*faceH;
+  const tlY=248-fillH, trY=282-fillH;
+  const fe=document.getElementById('airend-fill');
+  if(fe) fe.setAttribute('points',`358,${tlY} 424,${trY} 424,282 358,248`);
+
+  st('sv-airend-temp', f(at,1)+' °C');
+  st('sv-ambient',     f(ait,1)+' °C');
+  st('sv-air-inlet',   f(ait,1)+' °C');
+  st('sv-aos-pres',    f(aos,2)+' kg/cm²');
+  st('sv-oci',         f(oci,1)+'°C');
+  st('sv-oco',         f(oco,1)+'°C');
+  st('sv-aci',         f(aci,1)+'°C');
+  st('sv-aco',         f(aco,1)+'°C');
+  st('sv-fad',         f(fad,1)+' CFM');
+  st('sv-deliv-pres',  f(pres,2)+' kg/cm²');
+  st('sv-motor-pw',    f(mpw,1)+' kW');
+  st('sv-pkg-pw',      f(ppw,1)+' kW');
+  st('sv-voltage',     f(volt,0)+' V');
+  st('sv-current',     f(curr,1)+' A');
+  st('sv-pf',          'PF '+f(pf,2));
+
+  sm('pm-airend-temp',at,'°C',tempC(at));
+  sm('pm-oci',oci,'°C',tempC(oci));
+  sm('pm-oco',oco,'°C',tempC(oco));
+  sm('pm-aci',aci,'°C',tempC(aci));
+  sm('pm-aco',aco,'°C',tempC(aco));
+  sm('pm-air-inlet',ait,'°C','ok');
+  sm('pm-pres',pres,'kg/cm²',presC(pres));
+  sm('pm-aos',aos,'kg/cm²','ok');
+  sm('pm-fad',fad,'CFM',fadC(fad));
+  sm('pm-motor-pw',mpw,'kW','ok');
+  sm('pm-pkg-pw',ppw,'kW','ok');
+  sm('pm-voltage',volt,'V',voltC(volt));
+  sm('pm-current',curr,'A','ok');
+  sm('pm-pf',pf,'','ok');
+  sm('pm-spc',spc,'kW/m³/min','ok');
+
+  utol('tol-flow-val','tol-flow-badge',tf,'%',tf>0&&tf<=12);
+  utol('tol-spc-val','tol-spc-badge',ts,'%',ts>-8&&ts<=5);
+
+  st('cv-airend', f(at,1)+' °C');
+  st('cv-fad',    f(fad,1)+' CFM');
+  st('cv-motor',  f(mpw,1)+' kW');
+
+  const fanEl=document.getElementById('fan-rotor');
+  const fanTxt=document.getElementById('fan-status-txt');
+  if(fanEl){
+    if(at<40){fanEl.className='stopped';if(fanTxt){fanTxt.textContent='STANDBY';fanTxt.style.fill='#3a5a7a';}}
+    else if(at<70){fanEl.className='slow';if(fanTxt){fanTxt.textContent='WARMING';fanTxt.style.fill='#f6a820';}}
+    else{fanEl.className='';if(fanTxt){fanTxt.textContent='RUNNING';fanTxt.style.fill='#00d4be';}}
+  }
+
+  trendLabels.push(elStr); airVals.push(n(at)); fadVals.push(n(fad)); motorVals.push(n(mpw));
+  if(trendLabels.length>WINDOW){ trendLabels.shift(); airVals.shift(); fadVals.shift(); motorVals.shift(); }
+  push(chartAirend, trendLabels, airVals);
+  push(chartFad,    trendLabels, fadVals);
+  push(chartMotor,  trendLabels, motorVals);
+}
+
+// ═══ HELPERS ═════════════════════════════════════════════
+function st(id,val){ const e=document.getElementById(id); if(e) e.textContent=val; }
+function f(v,d){ if(v==null||isNaN(v))return '--'; return Number(v).toFixed(d); }
+function n(v){ const x=Number(v); return isFinite(x)?x:null; }
+function sm(id,val,unit,cls){
+  const e=document.getElementById(id); if(!e) return;
+  const dec=unit==='kg/cm²'?2:unit==='V'?0:1;
+  e.innerHTML=f(val,dec)+`<span class="metric-unit">${unit}</span>`;
+  e.className='metric-val '+cls;
+}
+function utol(vi,bi,val,unit,pass){
+  const ve=document.getElementById(vi), be=document.getElementById(bi);
+  if(!ve||!be) return;
+  ve.textContent=(val>0?'+':'')+f(val,1)+unit;
+  ve.style.color=pass?'#00ee88':'#ff4455';
+  be.textContent=pass?'PASS':'FAIL';
+  be.className='tol-badge '+(pass?'pass':'fail');
+}
+function push(chart,labels,vals){
+  chart.data.labels=[...labels];
+  chart.data.datasets[0].data=[...vals];
+  chart.update('none');
+}
+function tempC(t){ if(t==null||isNaN(t))return''; if(t>88)return'hot'; if(t>65)return'warm'; return'ok'; }
+function presC(p){ if(p==null||isNaN(p))return''; if(p>8.6||p<6.5)return'warn'; return'ok'; }
+function fadC(f){  if(f==null||isNaN(f))return''; if(f<120)return'warn'; return'ok'; }
+function voltC(v){ if(v==null||isNaN(v))return''; if(v<373||v>456)return'warn'; return'ok'; }
+function resetDisplay(){
+  ['pm-airend-temp','pm-oci','pm-oco','pm-aci','pm-aco','pm-air-inlet','pm-pres','pm-aos',
+   'pm-fad','pm-motor-pw','pm-pkg-pw','pm-voltage','pm-current','pm-pf','pm-spc'].forEach(id=>{
+    const e=document.getElementById(id); if(e) e.innerHTML='--<span class="metric-unit"></span>';
+  });
+  document.getElementById('phase-badge').textContent='IDLE';
+  document.getElementById('clock-disp').textContent='--:--:--';
+  document.getElementById('elapsed-disp').textContent='0:00:00';
+}
+
+// ═══ EVENT LISTENERS ════════════════════════════════════
+document.getElementById('btn-play').addEventListener('click',startPlayback);
+document.getElementById('btn-pause').addEventListener('click',stopPlayback);
+document.getElementById('btn-reset').addEventListener('click',resetPlayback);
+document.querySelectorAll('.speed-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.speed-btn').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active'); speed=parseInt(this.dataset.speed);
+    if(playing){stopPlayback();startPlayback();}
+  });
+});
+document.getElementById('scrubber').addEventListener('input',function(){
+  currentIdx=parseInt(this.value); if(data.length) renderFrame(currentIdx);
+});
+// Re-render chart on scroll/resize for Chart.js safety
+window.addEventListener('resize', () => { allCharts.forEach(c => c.resize()); });
+</script>
+</body>
+</html>

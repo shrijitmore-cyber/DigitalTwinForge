@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Technical Instrument Authority | Digital Twin Platform</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800&amp;family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Intel+One+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1B998B",
+                        "on-primary": "#FFFFFF",
+                        "primary-container": "#D1ECEA",
+                        "on-primary-container": "#00201C",
+                        "secondary": "#4A5568",
+                        "on-secondary": "#FFFFFF",
+                        "secondary-container": "#E2E8F0",
+                        "on-secondary-container": "#1A202C",
+                        "tertiary": "#E2725B",
+                        "background": "#FFFFFF",
+                        "on-background": "#1A202C",
+                        "surface": "#FFFFFF",
+                        "on-surface": "#1A202C",
+                        "surface-variant": "#F8FAFB",
+                        "on-surface-variant": "#4A5568",
+                        "outline": "#CBD5E0",
+                        "outline-variant": "#E2E8F0"
+                    },
+                    fontFamily: {
+                        "heebo": ["Heebo", "sans-serif"],
+                        "mono": ["'Intel One Mono'", "monospace"],
+                        "label": ["'Space Grotesk'", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "none": "0px",
+                        "DEFAULT": "0px",
+                        "lg": "0px",
+                        "xl": "0px",
+                        "full": "0px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #FFFFFF;
+        }
+
+        .shutter-hover:hover {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .shutter-hover::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(27, 153, 139, 0.05);
+            transition: left 0.3s ease-in-out;
+            z-index: -1;
+        }
+
+        .shutter-hover:hover::after {
+            left: 0;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .machine-data {
+            font-family: 'Intel One Mono', monospace;
+        }
+
+        .glow-accent {
+            background: linear-gradient(135deg, #1B998B 0%, #29C4B3 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .radial-aura {
+            background: radial-gradient(circle at center, rgba(27, 153, 139, 0.05) 0%, rgba(255, 255, 255, 0) 70%);
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body class="text-on-surface font-heebo selection:bg-primary selection:text-on-primary">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-primary font-heebo">Technical Instrument Authority</span>
+<nav class="hidden md:flex gap-6 items-center h-full">
+<a class="text-primary border-b-2 border-primary pb-1 uppercase tracking-wider font-heebo text-sm font-bold" href="#">OVERVIEW</a>
+<a class="text-secondary font-medium hover:text-primary transition-colors duration-200 uppercase tracking-wider font-heebo text-sm" href="#">MONITOR</a>
+<a class="text-secondary font-medium hover:text-primary transition-colors duration-200 uppercase tracking-wider font-heebo text-sm" href="#">ANALYTICS</a>
+<a class="text-secondary font-medium hover:text-primary transition-colors duration-200 uppercase tracking-wider font-heebo text-sm" href="#">ML ENGINE</a>
+<a class="text-secondary font-medium hover:text-primary transition-colors duration-200 uppercase tracking-wider font-heebo text-sm" href="#">DOCS</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-variant border border-outline-variant">
+<span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+<span class="machine-data text-[10px] text-primary uppercase font-bold">System Online</span>
+</div>
+<button class="text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</header>
+<main class="pt-16 min-h-screen">
+<!-- Hero Section -->
+<section class="grid grid-cols-1 lg:grid-cols-2 min-h-[calc(100vh-64px)] border-b border-outline-variant">
+<!-- Left Content -->
+<div class="flex flex-col justify-center p-8 lg:p-16 border-r border-outline-variant bg-white relative z-20">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-primary-container border border-primary/20 mb-8 w-fit">
+<span class="w-1.5 h-1.5 bg-primary rounded-full animate-ping"></span>
+<span class="machine-data text-[11px] uppercase tracking-widest text-primary font-bold">Electronic Screw Compressor — v2.4</span>
+</div>
+<h1 class="flex flex-col text-5xl lg:text-7xl leading-tight mb-6">
+<span class="font-light text-secondary">Real-Time</span>
+<span class="font-bold glow-accent tracking-tighter">Digital Mirror</span>
+<span class="font-thin text-on-surface-variant">of Your Machine</span>
+</h1>
+<p class="text-on-surface-variant text-lg lg:text-xl max-w-xl mb-12 font-light leading-relaxed">
+                High-fidelity synchronization of industrial assets using physics-grounded models. 
+                Augmented by ML-inference for real-time streaming and mission-critical predictive health diagnostics.
+            </p>
+<div class="flex flex-wrap gap-4 mb-16">
+<button class="px-8 py-4 bg-primary text-on-primary font-bold uppercase tracking-widest text-xs hover:bg-[#158074] transition-all duration-300">
+                    Launch Dashboard
+                </button>
+<button class="px-8 py-4 border border-primary text-primary font-bold uppercase tracking-widest text-xs hover:bg-primary/5 transition-all duration-300">
+                    ML Features
+                </button>
+</div>
+<div class="grid grid-cols-3 gap-8 pt-8 border-t border-outline-variant">
+<div>
+<div class="machine-data text-2xl text-on-surface font-bold">12ms</div>
+<div class="machine-data text-[10px] text-on-surface-variant uppercase tracking-tighter">Data Latency</div>
+</div>
+<div>
+<div class="machine-data text-2xl text-on-surface font-bold">98.4%</div>
+<div class="machine-data text-[10px] text-on-surface-variant uppercase tracking-tighter">Prediction Accuracy</div>
+</div>
+<div>
+<div class="machine-data text-2xl text-on-surface font-bold">64+</div>
+<div class="machine-data text-[10px] text-on-surface-variant uppercase tracking-tighter">Sensor Channels</div>
+</div>
+</div>
+</div>
+<!-- Right Visual Panel -->
+<div class="bg-white relative flex flex-col p-8 overflow-hidden group">
+<!-- Radial Aura Background -->
+<div class="absolute inset-0 radial-aura pointer-events-none"></div>
+<div class="flex justify-between items-center mb-8 border-b border-outline-variant pb-4 relative z-10">
+<span class="machine-data text-[11px] text-secondary uppercase tracking-[0.2em] font-medium">Live Compressor Model — Unit SCR-04</span>
+<span class="machine-data text-[11px] text-primary font-bold">STATUS: NOMINAL</span>
+</div>
+<!-- Schematic Area -->
+<div class="flex-grow relative flex items-center justify-center">
+<div class="relative w-full aspect-square max-w-lg flex items-center justify-center">
+<img alt="Technical skeleton of industrial screw compressor" class="w-full h-auto object-contain max-h-[400px] drop-shadow-xl relative z-10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDNbxFE4CeU9e45OMKh0gj2X5aboQnCnF0KZF74Li1UKzKGFXhlL7UYAh90aps2FFRxLybVWwOO7TfA_AP3VT0AEoDbZSv0jwJUDR7xm5aAgRfIe2uMk2kpJqEoxaBRxR3B8LH_S9m9hAQleGSMAr6158SbKLOvM2mTYjqpHWl75Bf3Z-39hyPqCCuTgllsGziH0F36TKHNl_9t5cQFwVo3Ow_rnTZGZmhvuY-m0-w_K8LzRvqIWe-LYbLGoAmTTrNVHaAXsJF0fic"/>
+<!-- Functional Overlays -->
+<div class="absolute inset-0 z-30 flex">
+<!-- Sensor T1 -->
+<div class="absolute group cursor-help" style="top: 25%; left: 35%;">
+<div class="w-5 h-5 bg-tertiary border border-tertiary/20 text-white animate-pulse flex items-center justify-center text-[9px] machine-data font-bold">T1</div>
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[8px] py-1 px-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity machine-data">DISCHARGE TEMP: 84.2°C</div>
+</div>
+<!-- Sensor P2 -->
+<div class="absolute" style="bottom: 35%; left: 55%;">
+<div class="w-5 h-5 bg-primary border border-primary/20 text-white animate-pulse flex items-center justify-center text-[9px] machine-data font-bold">P2</div>
+</div>
+<!-- Sensor V3 -->
+<div class="absolute" style="top: 45%; right: 20%;">
+<div class="w-5 h-5 bg-secondary border border-secondary/20 text-white animate-pulse flex items-center justify-center text-[9px] machine-data font-bold">V3</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Health Bar -->
+<div class="mt-8 relative z-10">
+<div class="flex justify-between machine-data text-[10px] mb-2">
+<span class="text-on-surface-variant uppercase font-medium">Asset Health Index</span>
+<span class="text-primary font-bold">92%</span>
+</div>
+<div class="h-1.5 w-full bg-surface-variant border border-outline-variant/30">
+<div class="h-full bg-primary relative overflow-hidden" style="width: 92%">
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full" style="animation: shimmer 2s infinite"></div>
+</div>
+</div>
+</div>
+<!-- Data Cards Row -->
+<div class="grid grid-cols-3 gap-4 mt-8 relative z-10">
+<div class="p-4 bg-white border border-outline-variant border-l-4 border-l-primary hover:border-primary transition-colors">
+<div class="machine-data text-[10px] text-on-surface-variant uppercase mb-1">Discharge Temp</div>
+<div class="machine-data text-xl text-on-surface font-bold">84.2°C</div>
+<div class="machine-data text-[9px] text-primary font-bold">+0.4 ▲</div>
+</div>
+<div class="p-4 bg-white border border-outline-variant border-l-4 border-l-secondary hover:border-secondary transition-colors">
+<div class="machine-data text-[10px] text-on-surface-variant uppercase mb-1">Pressure Ratio</div>
+<div class="machine-data text-xl text-on-surface font-bold">1:7.4</div>
+<div class="machine-data text-[9px] text-secondary font-bold">STABLE</div>
+</div>
+<div class="p-4 bg-white border border-outline-variant border-l-4 border-l-primary hover:border-primary transition-colors">
+<div class="machine-data text-[10px] text-on-surface-variant uppercase mb-1">RPM</div>
+<div class="machine-data text-xl text-on-surface font-bold">3240</div>
+<div class="machine-data text-[9px] text-on-surface-variant font-medium">SYNC</div>
+</div>
+</div>
+<!-- Vibration Sparkline -->
+<div class="mt-8 border-t border-outline-variant pt-4 relative z-10">
+<div class="machine-data text-[9px] text-on-surface-variant uppercase mb-2 font-medium">24h Vibration Trend (mm/s RMS)</div>
+<div class="h-12 w-full flex items-end gap-[1px]">
+<div class="w-full h-[40%] bg-outline-variant/50"></div>
+<div class="w-full h-[45%] bg-outline-variant/50"></div>
+<div class="w-full h-[42%] bg-outline-variant/50"></div>
+<div class="w-full h-[38%] bg-outline-variant/50"></div>
+<div class="w-full h-[55%] bg-primary/40"></div>
+<div class="w-full h-[60%] bg-primary/60"></div>
+<div class="w-full h-[58%] bg-primary/40"></div>
+<div class="w-full h-[40%] bg-outline-variant/50"></div>
+<div class="w-full h-[35%] bg-outline-variant/50"></div>
+<div class="w-full h-[45%] bg-outline-variant/50"></div>
+<div class="w-full h-[50%] bg-outline-variant/50"></div>
+<div class="w-full h-[42%] bg-outline-variant/50"></div>
+<div class="w-full h-[38%] bg-outline-variant/50"></div>
+<div class="w-full h-[35%] bg-outline-variant/50"></div>
+<div class="w-full h-[40%] bg-outline-variant/50"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Feature Grid -->
+<section class="py-24 px-6 lg:px-16 bg-white">
+<div class="max-w-7xl mx-auto">
+<span class="machine-data text-[12px] uppercase tracking-[0.3em] text-primary mb-4 block font-bold">Platform Capabilities</span>
+<h2 class="text-4xl lg:text-5xl font-light mb-16 tracking-tight text-on-surface">
+                Everything your machine <span class="font-bold text-primary">needs you to know</span>
+</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+<!-- Feature 01 -->
+<div class="p-8 border border-outline-variant hover:bg-surface-variant transition-colors duration-300 relative group">
+<div class="flex justify-between items-start mb-12">
+<div class="w-12 h-12 border border-primary/20 bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">sensors</span>
+</div>
+<span class="machine-data text-xs text-on-surface-variant/40 font-bold">01</span>
+</div>
+<h3 class="text-xl font-bold mb-4 text-on-surface">Real-Time Data Streaming</h3>
+<p class="text-on-surface-variant font-light text-sm leading-relaxed">
+                        Ultra-low latency telemetry pipeline capable of processing 100k+ events per second with sub-millisecond jitter.
+                    </p>
+</div>
+<!-- Feature 02 -->
+<div class="p-8 border border-outline-variant hover:bg-surface-variant transition-colors duration-300 relative group">
+<div class="flex justify-between items-start mb-12">
+<div class="w-12 h-12 border border-primary/20 bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">view_in_ar</span>
+</div>
+<span class="machine-data text-xs text-on-surface-variant/40 font-bold">02</span>
+</div>
+<h3 class="text-xl font-bold mb-4 text-on-surface">3D Compressor Model</h3>
+<p class="text-on-surface-variant font-light text-sm leading-relaxed">
+                        Volumetric rendering of internal component states using real-world pressure and temperature gradients.
+                    </p>
+</div>
+<!-- Feature 03 -->
+<div class="p-8 border border-outline-variant hover:bg-surface-variant transition-colors duration-300 relative group">
+<div class="flex justify-between items-start mb-12">
+<div class="w-12 h-12 border border-primary/20 bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">psychology</span>
+</div>
+<span class="machine-data text-xs text-on-surface-variant/40 font-bold">03</span>
+</div>
+<h3 class="text-xl font-bold mb-4 text-on-surface">ML Predictive Analytics</h3>
+<p class="text-on-surface-variant font-light text-sm leading-relaxed">
+                        Advanced regression and classification models trained on historical failure modes to forecast RUL.
+                    </p>
+</div>
+<!-- Feature 04 -->
+<div class="p-8 border border-outline-variant hover:bg-surface-variant transition-colors duration-300 relative group">
+<div class="flex justify-between items-start mb-12">
+<div class="w-12 h-12 border border-primary/20 bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">report_problem</span>
+</div>
+<span class="machine-data text-xs text-on-surface-variant/40 font-bold">04</span>
+</div>
+<h3 class="text-xl font-bold mb-4 text-on-surface">Anomaly Detection</h3>
+<p class="text-on-surface-variant font-light text-sm leading-relaxed">
+                        Continuous monitoring for vibration patterns and thermal runaway using unsupervised learning clusters.
+                    </p>
+</div>
+<!-- Feature 05 -->
+<div class="p-8 border border-outline-variant hover:bg-surface-variant transition-colors duration-300 relative group">
+<div class="flex justify-between items-start mb-12">
+<div class="w-12 h-12 border border-primary/20 bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">analytics</span>
+</div>
+<span class="machine-data text-xs text-on-surface-variant/40 font-bold">05</span>
+</div>
+<h3 class="text-xl font-bold mb-4 text-on-surface">Health Scoring Engine</h3>
+<p class="text-on-surface-variant font-light text-sm leading-relaxed">
+                        Unified asset vitality score calculated from mechanical, electrical, and thermal efficiency KPIs.
+                    </p>
+</div>
+<!-- Feature 06 -->
+<div class="p-8 border border-outline-variant hover:bg-surface-variant transition-colors duration-300 relative group">
+<div class="flex justify-between items-start mb-12">
+<div class="w-12 h-12 border border-primary/20 bg-primary/5 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">model_training</span>
+</div>
+<span class="machine-data text-xs text-on-surface-variant/40 font-bold">06</span>
+</div>
+<h3 class="text-xl font-bold mb-4 text-on-surface">Simulation &amp; What-If</h3>
+<p class="text-on-surface-variant font-light text-sm leading-relaxed">
+                        Run hypothetical load scenarios to optimize operational parameters without risking physical equipment.
+                    </p>
+</div>
+</div>
+</div>
+</section>
+<!-- Data Architecture -->
+<section class="py-24 px-6 lg:px-16 bg-white border-t border-outline-variant">
+<div class="max-w-7xl mx-auto">
+<span class="machine-data text-[12px] uppercase tracking-[0.3em] text-secondary mb-4 block font-bold">Data Architecture</span>
+<h2 class="text-4xl lg:text-5xl font-light mb-16 tracking-tight text-on-surface">
+                From <span class="font-bold">sensor</span> to <span class="font-bold text-primary">insight</span>
+</h2>
+<div class="flex flex-col lg:flex-row items-stretch gap-0 border border-outline-variant">
+<!-- Step 01 -->
+<div class="flex-1 p-8 bg-white relative">
+<div class="machine-data text-[10px] text-primary mb-6 tracking-widest font-bold">STEP 01</div>
+<h4 class="text-lg font-bold mb-3 text-on-surface">Sensor Acquisition</h4>
+<p class="text-on-surface-variant text-xs leading-relaxed font-light">Edge-level hardware abstraction and high-frequency sampling.</p>
+<div class="hidden lg:block absolute top-1/2 -right-3 -translate-y-1/2 z-10">
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</div>
+</div>
+<!-- Step 02 -->
+<div class="flex-1 p-8 bg-surface-variant border-l border-outline-variant relative">
+<div class="machine-data text-[10px] text-primary mb-6 tracking-widest font-bold">STEP 02</div>
+<h4 class="text-lg font-bold mb-3 text-on-surface">Stream Processing</h4>
+<p class="text-on-surface-variant text-xs leading-relaxed font-light">Real-time filtering, normalization, and packet validation.</p>
+<div class="hidden lg:block absolute top-1/2 -right-3 -translate-y-1/2 z-10">
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</div>
+</div>
+<!-- Step 03 -->
+<div class="flex-1 p-8 bg-white border-l border-outline-variant relative">
+<div class="machine-data text-[10px] text-primary mb-6 tracking-widest font-bold">STEP 03</div>
+<h4 class="text-lg font-bold mb-3 text-on-surface">Digital Twin Sync</h4>
+<p class="text-on-surface-variant text-xs leading-relaxed font-light">Mirroring state data to high-fidelity virtual twin objects.</p>
+<div class="hidden lg:block absolute top-1/2 -right-3 -translate-y-1/2 z-10">
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</div>
+</div>
+<!-- Step 04 -->
+<div class="flex-1 p-8 bg-surface-variant border-l border-outline-variant relative">
+<div class="machine-data text-[10px] text-primary mb-6 tracking-widest font-bold">STEP 04</div>
+<h4 class="text-lg font-bold mb-3 text-on-surface">ML Inference</h4>
+<p class="text-on-surface-variant text-xs leading-relaxed font-light">Applying deep learning kernels to live sensor data streams.</p>
+<div class="hidden lg:block absolute top-1/2 -right-3 -translate-y-1/2 z-10">
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</div>
+</div>
+<!-- Step 05 -->
+<div class="flex-1 p-8 bg-white border-l border-outline-variant">
+<div class="machine-data text-[10px] text-primary mb-6 tracking-widest font-bold">STEP 05</div>
+<h4 class="text-lg font-bold mb-3 text-on-surface">Dashboard &amp; Alerts</h4>
+<p class="text-on-surface-variant text-xs leading-relaxed font-light">Human-readable visualization and automated override actions.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="fixed bottom-0 w-full flex justify-between items-center px-6 py-2 bg-white border-t border-outline-variant z-50">
+<div class="flex items-center gap-6">
+<span class="font-heebo font-bold text-primary">TIA</span>
+<span class="font-mono text-[10px] uppercase tracking-widest text-secondary font-medium">© 2024 Technical Instrument Authority</span>
+</div>
+<div class="flex gap-4">
+<span class="font-mono text-[10px] uppercase tracking-widest text-secondary font-medium">v2.4.1</span>
+<span class="font-mono text-[10px] uppercase tracking-widest text-secondary font-medium">Build #4190</span>
+</div>
+</footer>
+</body></html>

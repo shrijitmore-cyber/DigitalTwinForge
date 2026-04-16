@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  background: #0B1222;
+  color: #FFFFFF;
+  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes pulse-dot  { 0%,100%{opacity:1} 50%{opacity:.35} }
+@keyframes blink      { 50%{opacity:0} }
+@keyframes spin-fan   { to{transform:rotate(360deg)} }
+@keyframes dash-flow  { to{stroke-dashoffset:-22} }
+
+.fan-running  { transform-box:fill-box; transform-origin:center; animation:spin-fan .75s linear infinite; }
+.fan-warming  { transform-box:fill-box; transform-origin:center; animation:spin-fan 2.2s linear infinite; }
+.fan-stopped  { transform-box:fill-box; transform-origin:center; }
+
+.pipe-air  { animation:dash-flow 1.1s linear infinite; }
+.pipe-hot  { animation:dash-flow .85s linear infinite; }
+.pipe-oil  { animation:dash-flow .85s linear infinite; }
+.pipe-cool { animation:dash-flow 1.2s linear infinite; }
+.pipe-cool-rev { animation:dash-flow 1.5s linear infinite reverse; }
+
+.metric-hot  { color:#ff6b35; }
+.metric-warm { color:#f6a820; }
+.metric-ok   { color:#00A651; }
+.metric-warn { color:#ffe566; }
+.metric-alert{ color:#ff4455; animation:blink .8s step-end infinite; }
