@@ -111,6 +111,35 @@ def _augment_ml_result(result: dict, engine: CompressorInference) -> dict:
     
     return result
 
+def _update_checkpoints(sess, elapsed_min, ml_data):
+    """
+    Logic to store 'Actual' sensor values when thresholds are crossed,
+    and update 'Predicted' slots for future milestones.
+    """
+    if not sess or not ml_data: return
+    
+    checkpoints = sess.get("checkpoints", {})
+    milestones = [15, 20, 25, 30, 35, 40, 45, 50, 55, 60]
+    
+    cur_sensors = ml_data.get("current_sensors", {})
+    pred_sensors = ml_data.get("predicted_sensors", {})
+    
+    for m in milestones:
+        if m not in checkpoints:
+            checkpoints[m] = {"checkpoint_min": m, "actual_sensors": None, "predicted_sensors": None, "available": False}
+        
+        # 1. Update Predicted: If we are still before the checkpoint, 
+        # use current forecast as the 'prediction' for that checkpoint
+        if elapsed_min < m and pred_sensors:
+            checkpoints[m]["predicted_sensors"] = pred_sensors
+            
+        # 2. Update Actual: If we just crossed the checkpoint, freeze the actuals
+        if elapsed_min >= m and checkpoints[m]["actual_sensors"] is None:
+            checkpoints[m]["actual_sensors"] = cur_sensors
+            checkpoints[m]["available"] = True
+            
+    sess["checkpoints"] = checkpoints
+
 # ── Socket.IO server (async, CORS open for dev) ─────────────────────────────
 sio = socketio.AsyncServer(
     async_mode="asgi",
@@ -255,6 +284,10 @@ def _build_frame(idx: int, sid: str = None) -> dict:
         try:
             pred = _engine.predict(window)
             ml_data = _augment_ml_result(pred, _engine)
+            
+            # Update the Accuracy Audit table data
+            _update_checkpoints(sess, elapsed_min, ml_data)
+            ml_data["checkpoints"] = sess.get("checkpoints", {})
         except Exception as e:
             print(f"[ml] prediction error: {e}")
 
@@ -317,7 +350,8 @@ async def connect(sid, environ, auth=None):
         "task": None, 
         "speed": 10, 
         "idx": 0,
-        "buffer": SensorStreamBuffer(_engine.sensors) if _engine else None
+        "buffer": SensorStreamBuffer(_engine.sensors) if _engine else None,
+        "checkpoints": {}
     }
     try:
         df = data_store.get_df()
@@ -363,6 +397,30 @@ async def start_stream(sid, data):
     sess["idx"] = start_idx
 
     # Launch streaming task
+    if start_idx > 0 and sess.get("buffer"):
+        # Back-fill the AI buffer and checkpoints so charts & KPIs light up immediately
+        sess["buffer"].clear()
+        sess["checkpoints"] = {}
+        lookback = min(start_idx, 100) # Last 100 readings (25 mins)
+        for i in range(max(0, start_idx - lookback), start_idx):
+            r = data_store.row_as_dict(i)
+            e_min = float(r.get("elapsed_time_min", (r.get("elapsed_time_sec") / 60.0 if r.get("elapsed_time_sec") else 0.0)))
+            s_vals = {s: float(r[s]) if r.get(s) is not None else 0.0 for s in _engine.sensors}
+            
+            # Feed buffer
+            window = sess["buffer"].append(e_min, s_vals)
+            # Add 'extra' columns if they exist in dataset (for feature engineering)
+            for col in ["rated_fad_cfm", "rated_motor_output_kw", "tolerance_flow_pct"]:
+                if col in r:
+                    window[col] = float(r[col]) if r[col] is not None else 0.0
+            
+            # Run internal inference to populate checkpoints
+            try:
+                pred = _engine.predict(window)
+                _update_checkpoints(sess, e_min, pred)
+            except:
+                pass
+
     task = asyncio.get_event_loop().create_task(_stream_task(sid))
     sess["task"] = task
     await sio.emit("stream_state", {"status": "playing", "idx": start_idx}, to=sid)
@@ -425,3 +483,12 @@ async def set_speed(sid, data):
         "speed": speed,
     }, to=sid)
     print(f"[socket] set_speed    sid={sid} speed={speed}x")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    # Use the 'sio' app wrapped in an ASGI app
+    from socketio import ASGIApp
+    app = ASGIApp(sio)
+    print(f"[socket] starting server on port 8000...")
+    uvicorn.run(app, host="0.0.0.0", port=8000)

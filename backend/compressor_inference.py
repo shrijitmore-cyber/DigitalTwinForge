@@ -322,10 +322,16 @@ class CompressorInference:
         # Model prediction  →  [time_to_stability, sensor_1, ..., sensor_N]
         raw_pred         = self.model.predict(feat_scaled)[0]
         time_to_stability = max(float(raw_pred[0]), 0.0)
-        sensor_forecast   = {
-            s: round(float(raw_pred[1 + idx]), 3)
-            for idx, s in enumerate(self.sensors)
-        }
+        # Multi-line quantile forecast
+        sensor_forecast = {}
+        for idx, s in enumerate(self.sensors):
+            val = float(raw_pred[1 + idx])
+            std = self.stable_std.get(s, 0.0)
+            sensor_forecast[s] = {
+                "p50": round(val, 3),
+                "p10": round(val - 1.645 * std, 3),
+                "p90": round(val + 1.645 * std, 3)
+            }
 
         # Derived metrics
         predicted_stable_min  = elapsed + time_to_stability

@@ -9,7 +9,7 @@ const THEMES = {
 };
 
 const MESSAGES = {
-  WAIT: "Collecting baseline data (Min 15m elapsed & 20 readings required)...",
+  WAIT: "Waiting for intelligence initialization...",
   CONTINUE_MONITORING: "System is still in transient state. Continue monitoring convergence trends.",
   PREPARE_STOP: "Approach to stability detected. Prepare pre-stop inspection checklist.",
   SAFE_TO_STOP: "Confidence threshold reached. Machine is stable and ready for test conclusion.",
@@ -19,7 +19,12 @@ const MESSAGES = {
 export default function ActionBanner({ ml }) {
   const status = ml?.action || 'WAIT';
   const theme = THEMES[status] || THEMES.WAIT;
-  const msg = MESSAGES[status] || MESSAGES.WAIT;
+  let msg = ml?.message || MESSAGES[status] || MESSAGES.WAIT;
+  
+  // High-visibility progress for the initialization phase
+  if (status === 'WAIT' && ml?.n_readings != null) {
+      msg = `Intelligence initialized. Analyzing data... (${ml.n_readings} / 5 samples collected)`;
+  }
 
   return (
     <div style={{
@@ -30,9 +35,10 @@ export default function ActionBanner({ ml }) {
       margin: '8px 16px', flexShrink: 0
     }}>
       <div style={{
-        fontSize: '9px', fontWeight: 800, color: '#FFFFFF',
-        background: theme.pill, padding: '3px 10px', borderRadius: '4px',
-        letterSpacing: '0.05em', textTransform: 'uppercase', whiteSpace: 'nowrap'
+        fontSize: '0.7rem', fontWeight: 700, color: theme.text,
+        background: theme.bg, padding: '0.28rem 0.65rem', borderRadius: '999px',
+        letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+        border: `1.5px solid ${theme.border}`
       }}>
         {status.replace(/_/g, ' ')}
       </div>

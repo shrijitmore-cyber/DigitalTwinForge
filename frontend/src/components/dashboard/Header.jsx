@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-
-
+import { useSimulation } from '../../context/SimulationContext'
 
 export default function Header({ frame }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { playing, play, pause, reset, speed, changeSpeed, connected } = useSimulation()
   const [clock, setClock] = useState('--:--:--')
 
   useEffect(() => {
@@ -14,8 +14,8 @@ export default function Header({ frame }) {
     return () => clearInterval(t)
   }, [])
 
-  const phase   = frame?.display?.phase_label ?? 'IDLE'
-  const running = frame && phase !== 'IDLE'
+  const phase = frame?.display?.phase_label ?? 'IDLE'
+  const isLive = frame && phase !== 'IDLE'
 
   function handleLogout() { logout(); navigate('/login') }
 
@@ -25,7 +25,7 @@ export default function Header({ frame }) {
       padding: '0 20px', height: '52px', flexShrink: 0,
       background: '#FFFFFF',
       borderBottom: '1px solid #E2E8E4',
-      fontFamily: "'IBM Plex Mono', monospace",
+      fontFamily: "'Inter', sans-serif",
     }}>
       <span style={{ fontSize: '18px', fontWeight: 800, color: '#2563EB', letterSpacing: '0.05em' }}>INDI4</span>
 
@@ -36,10 +36,62 @@ export default function Header({ frame }) {
       <Divider />
       <Meta label="FAD"    value="127 CFM" />
 
+      {/* ── SIMULATION CONTROLS ── */}
+      <div style={{ marginLeft: '40px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <select 
+          value={speed}
+          onChange={(e) => changeSpeed(Number(e.target.value))}
+          style={{
+            padding: '4px 8px', borderRadius: '6px', border: '1px solid #E2E8E4',
+            fontSize: '12px', outline: 'none', cursor: 'pointer', background: '#FFF'
+          }}
+        >
+          <option value={1000}>Slow (1x)</option>
+          <option value={10}>Normal (10x)</option>
+          <option value={5}>Fast (50x)</option>
+          <option value={1}>Rapid (100x)</option>
+        </select>
+
+        {!playing ? (
+          <button 
+            onClick={play}
+            style={{
+              background: '#2563EB', color: '#FFF', border: 'none',
+              padding: '6px 18px', borderRadius: '6px', fontSize: '12px',
+              fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+            }}
+          >
+            START
+          </button>
+        ) : (
+          <button 
+            onClick={pause}
+            style={{
+              background: '#DC2626', color: '#FFF', border: 'none',
+              padding: '6px 18px', borderRadius: '6px', fontSize: '12px',
+              fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+            }}
+          >
+            STOP
+          </button>
+        )}
+
+        <button 
+          onClick={reset}
+          style={{
+            background: '#FFFFFF', color: '#DC2626', border: '1px solid #DC2626',
+            padding: '6px 18px', borderRadius: '6px', fontSize: '12px',
+            fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+          }}
+        >
+          RESET
+        </button>
+      </div>
+
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
         {/* Phase badge */}
         <div style={{
-          fontFamily: "'IBM Plex Mono', monospace",
+          fontFamily: "'JetBrains Mono', monospace",
           fontSize: '10px', fontWeight: 700,
           letterSpacing: '0.12em', textTransform: 'uppercase',
           padding: '5px 16px',
@@ -47,6 +99,7 @@ export default function Header({ frame }) {
           color: '#FFFFFF',
           background: '#00A651',
           minWidth: '130px', textAlign: 'center',
+          borderRadius: '4px'
         }}>
           {phase}
         </div>
@@ -56,51 +109,31 @@ export default function Header({ frame }) {
         {/* Live dot */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
           <div style={{
-            width: '7px', height: '7px', borderRadius: '50%',
-            background: running ? '#00A651' : '#D1D5D3',
-            boxShadow: running ? '0 0 8px rgba(0,166,81,0.6)' : 'none',
-            animation: running ? 'pulse-dot 1.5s ease-in-out infinite' : 'none',
+            width: '8px', height: '8px', borderRadius: '50%',
+            background: connected ? '#16A34A' : '#9CA3AF',
+            boxShadow: connected ? '0 0 6px rgba(22, 163, 74, .5)' : 'none',
             flexShrink: 0,
           }} />
           <span style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase',
-            color: running ? '#00A651' : '#AAB5AD',
-            fontWeight: running ? 700 : 400,
+            fontSize: '11px', color: '#6B7280', fontWeight: 500
           }}>
-            {running ? 'LIVE' : 'STANDBY'}
+            {connected ? 'CONNECTED' : 'DISCONNECTED'}
           </span>
         </div>
 
         <Divider />
 
-        <span style={{
-          fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: '14px', fontWeight: 700,
-          color: '#0A1A10', letterSpacing: '0.05em',
-        }}>
+        <span style={{ fontSize: '14px', fontWeight: 700, color: '#1A1E2C' }}>
           {clock}
         </span>
 
         <Divider />
 
-        <span style={{
-          fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: '11px', color: '#6B8075',
-        }}>
-          {user?.username}
-        </span>
-
         <button
           onClick={handleLogout}
           style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase',
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: '#AAB5AD', transition: 'color 0.2s', padding: '0',
+            fontSize: '11px', color: '#6B7280', background: 'none', border: 'none', cursor: 'pointer'
           }}
-          onMouseEnter={e => e.target.style.color = '#E53E3E'}
-          onMouseLeave={e => e.target.style.color = '#AAB5AD'}
         >
           Sign out
         </button>
@@ -115,9 +148,9 @@ function Divider() {
 
 function Meta({ label, value }) {
   return (
-    <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: '11px', letterSpacing: '0.06em' }}>
-      <span style={{ color: '#6B8075' }}>{label} </span>
-      <span style={{ color: '#0A1A10', fontWeight: 600 }}>{value}</span>
+    <span style={{ fontSize: '11px', letterSpacing: '0.06em' }}>
+      <span style={{ color: '#6B7280' }}>{label} </span>
+      <span style={{ color: '#1A1E2C', fontWeight: 600 }}>{value}</span>
     </span>
   )
 }

@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 
 const SimulationContext = createContext();
 
-const SOCKET_URL = '/';
+const SOCKET_URL = import.meta.env.VITE_API_URL || '/';
 
 export function SimulationProvider({ children }) {
   const socketRef = useRef(null);
@@ -13,14 +13,19 @@ export function SimulationProvider({ children }) {
   const [frame, setFrame] = useState(null);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(10);
+  const [speed, setSpeed] = useState(30);
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
     const sock = io(SOCKET_URL, { transports: ['websocket'] });
     socketRef.current = sock;
 
-    sock.on('connect', () => setConnected(true));
+    sock.on('connect', () => {
+      setConnected(true);
+      // Reliably auto-play on every fresh connection
+      sock.emit('start_stream', { speed: 30, start_idx: 0 });
+    });
+
     sock.on('disconnect', () => {
       setConnected(false);
       setPlaying(false);
@@ -28,22 +33,18 @@ export function SimulationProvider({ children }) {
 
     sock.on('connected', (data) => {
       setTotalRows(data.total_rows);
-      // Auto-start if not already playing or just started
-      sock.emit('start_stream', { speed: 10, start_idx: 0 });
     });
 
     sock.on('frame', (data) => {
       setFrame(data);
       setIdx(data.idx);
       setHistory((prev) => {
-        // Enrich history with ML predictions for the "Predicted Track"
+        // Enrich history with ML predictions and proper structure
         const entry = {
+          ...data, // Keep the full frame structure for the checkers
           label: data.display?.elapsed_label ?? '',
-          elapsed_min: data.display?.elapsed_min ?? 0,
-          ...data.row,
-          ml_pred: data.ml?.predicted_sensors ?? {},
+          elapsed_min: data.ml?.elapsed_min ?? data.display?.elapsed_min ?? 0,
         };
-        // Keep a reasonable window (e.g. 400 points)
         const newHistory = [...prev, entry];
         return newHistory.slice(-400);
       });
@@ -54,9 +55,11 @@ export function SimulationProvider({ children }) {
       if (data.status === 'paused') setPlaying(false);
       if (data.status === 'complete') {
         setPlaying(false);
-        sock.emit('start_stream', { speed: 10, start_idx: 0 });
+        // Loop simulation automatically
+        sock.emit('start_stream', { speed: 30, start_idx: 0 });
       }
       if (data.idx != null) setIdx(data.idx);
+      if (data.speed != null) setSpeed(data.speed);
     });
 
     return () => {
@@ -77,12 +80,14 @@ export function SimulationProvider({ children }) {
     socketRef.current?.emit('seek', { idx: 0 });
     setHistory([]);
     setIdx(0);
-  }, []);
+    // Restart after reset
+    socketRef.current?.emit('start_stream', { speed, start_idx: 0 });
+  }, [speed]);
 
   const changeSpeed = useCallback((s) => {
     setSpeed(s);
-    if (playing) socketRef.current?.emit('set_speed', { speed: s });
-  }, [playing]);
+    socketRef.current?.emit('set_speed', { speed: s });
+  }, []);
 
   const seek = useCallback((newIdx) => {
     setIdx(newIdx);

@@ -7,6 +7,7 @@ import ActionBanner from '../components/dashboard/ActionBanner'
 import KpiScorecard from '../components/dashboard/KpiScorecard'
 import TrajectorySuite from '../components/dashboard/TrajectorySuite'
 import OperationalReports from '../components/dashboard/OperationalReports'
+import CheckpointTable from '../components/dashboard/CheckpointTable'
 import { useSimulation } from '../context/SimulationContext'
 
 const SOCKET_URL = '/'
@@ -125,6 +126,11 @@ export default function StabilityAnalytics() {
           boxShadow: '0 -4px 24px rgba(0,0,0,0.08)',
         }}>
           <TrajectorySuite history={history} ml={frame?.ml} />
+          
+          {/* Accuracy Audit Table */}
+          <div style={{ padding: '0 20px' }}>
+            <CheckpointTable ml={frame?.ml} />
+          </div>
         </div>
 
         </div>{/* end left column */}

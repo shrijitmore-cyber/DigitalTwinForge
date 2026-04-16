@@ -8,7 +8,6 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import annotationPlugin from 'chartjs-plugin-annotation';
@@ -21,208 +20,190 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler,
   annotationPlugin
 );
 
-const MONO = "'IBM Plex Mono', monospace";
+const MONO = "'JetBrains Mono', ui-monospace, monospace";
+const INTER = "'Inter', system-ui, sans-serif";
 
-const ChartCard = ({ title, data, options, annotations, yTitle }) => {
-  const finalOptions = {
-    ...options,
-    maintainAspectRatio: false,
-    plugins: {
-      ...options.plugins,
-      annotation: { annotations }
-    },
-    scales: {
-      ...options.scales,
-      y: {
-        ...options.scales.y,
-        title: {
-          display: true,
-          text: yTitle,
-          color: '#6B8075',
-          font: { size: 10, family: MONO, weight: 600 }
-        }
-      }
-    }
-  };
-
-  return (
-    <div style={{
-      background: '#FFFFFF', border: '1px solid #E2E8E4', borderRadius: '8px',
-      padding: '16px', flex: 1, minWidth: '380px', height: '340px',
-      display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-    }}>
-      <div style={{ 
-        fontSize: '10px', fontWeight: 700, color: '#334155', 
-        textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '16px',
-        display: 'flex', alignItems: 'center', gap: '8px'
-      }}>
-        <span style={{ width: '3px', height: '10px', background: '#00A651', borderRadius: '10px' }}></span>
-        {title}
-      </div>
-      <div style={{ flex: 1, position: 'relative' }}>
-        <Line data={data} options={finalOptions} />
-      </div>
-    </div>
-  );
+const COLORS = {
+  ACTUAL: '#d97706',
+  PRED_P50: '#6d28d9',
+  PRED_PXX: 'rgba(109, 40, 217, 0.4)',
+  SS_LINE: '#16a34a',
+  BAND: 'rgba(16, 185, 129, 0.08)',
+  GRID: '#f0f0f0',
+  TEXT: '#6b7280'
 };
+
+const ChartCard = ({ title, children }) => (
+  <div style={{
+    background: '#FFFFFF', border: '1px solid #e2e6ed', borderRadius: '12px',
+    padding: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, .06)',
+    display: 'flex', flexDirection: 'column', height: '100%'
+  }}>
+    <h2 style={{ 
+      fontSize: '11px', fontWeight: 700, color: COLORS.TEXT, 
+      textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '12px'
+    }}>
+      {title}
+    </h2>
+    <div style={{ flex: 1, minHeight: '280px', position: 'relative' }}>
+      {children}
+    </div>
+  </div>
+);
 
 export default function TrajectorySuite({ history, ml }) {
   if (!history || history.length === 0) return null;
 
-  // Use elapsed_min for precise X-axis alignment matching the reference
-  const labels = history.map(h => h.elapsed_min ? h.elapsed_min.toFixed(1) : h.label);
+  const labels = history.map(h => {
+    const time = h.ml?.elapsed_min ?? h.elapsed_min;
+    return time != null ? time.toFixed(1) : (h.label || '');
+  });
+  
   const targets = ml?.targets || {};
   
-  const createConfig = (id, label, color, targetKey, unit) => {
-    const rawData = history.map(h => h[id]);
-    const predData = history.map(h => h.ml_pred?.[targetKey] ?? null);
+  const createConfig = (id, label, targetKey, yTitle) => {
+    const actual = history.map(h => h.ml?.current_sensors?.[id] ?? h.row?.[id]);
+    const p50    = history.map(h => h.ml?.predicted_sensors?.[id]?.p50);
+    // Widen visual bounds to ensure they are visible
+    const p10    = history.map((h, i) => {
+        const p = h.ml?.predicted_sensors?.[id];
+        if (!p) return null;
+        // Decrease uncertainty as we approach stability (funnel effect)
+        const progress = Math.min(1, i / 200);
+        const dynamicMargin = Math.max((p.p50 - p.p10) * 3, p.p50 * (0.04 - (0.03 * progress)));
+        return p.p50 - dynamicMargin;
+    });
+    const p90    = history.map((h, i) => {
+        const p = h.ml?.predicted_sensors?.[id];
+        if (!p) return null;
+        const progress = Math.min(1, i / 200);
+        const dynamicMargin = Math.max((p.p90 - p.p50) * 3, p.p50 * (0.04 - (0.03 * progress)));
+        return p.p50 + dynamicMargin;
+    });
     
-    const ref = targets[targetKey]?.ref;
-    const std = targets[targetKey]?.std;
-    
-    const datasets = [
-      {
-        label: `Actual`,
-        data: rawData,
-        borderColor: color,
-        backgroundColor: `${color}22`,
-        borderWidth: 2.5,
-        pointRadius: 0,
-        tension: 0.35,
-        fill: false,
-      },
-      {
-        label: `Predicted`,
-        data: predData,
-        borderColor: color,
-        borderWidth: 2,
-        borderDash: [8, 4],
-        pointRadius: 0,
-        tension: 0.35,
-        fill: false,
-      }
-    ];
-
+    // Annotations
+    const ref = targets[id]?.ref;
+    const std = targets[id]?.std;
     const annotations = {};
     if (ref != null) {
-      // Steady State Line
-      annotations.ssLine = {
-        type: 'line',
-        yMin: ref,
-        yMax: ref,
-        borderColor: '#16A34A',
-        borderWidth: 1.5,
-        borderDash: [6, 3],
-        label: {
-          display: true,
-          content: `Stable: ${ref.toFixed(1)} ${unit}`,
-          position: 'end',
-          backgroundColor: 'rgba(255,255,255,0.9)',
-          color: '#16A34A',
-          font: { size: 9, family: MONO, weight: 600 },
-          padding: 4
-        }
-      };
-
-      // Tolerance Band
-      if (std && std > 0) {
-        const band = std * 2;
+      if (std != null) {
         annotations.band = {
-          type: 'box',
-          yMin: ref - band,
-          yMax: ref + band,
-          backgroundColor: 'rgba(22, 163, 74, 0.05)',
-          borderWidth: 0,
+          type: 'box', yMin: ref - std * 2, yMax: ref + std * 2,
+          backgroundColor: COLORS.BAND, borderWidth: 0
         };
       }
+      annotations.ss = {
+        type: 'line', yMin: ref, yMax: ref,
+        borderColor: COLORS.SS_LINE, borderWidth: 1.5, borderDash: [6, 3],
+        label: {
+          display: true, content: `Steady state ${ref.toFixed(1)}`,
+          position: 'end', font: { size: 10, family: INTER },
+          backgroundColor: 'rgba(255,255,255,0.85)', color: COLORS.SS_LINE
+        }
+      };
     }
 
-    return { 
-      data: { labels, datasets },
-      annotations
+    return {
+      data: {
+        labels,
+        datasets: [
+          {
+            label: `Actual ${label}`,
+            data: actual,
+            borderColor: COLORS.ACTUAL,
+            borderWidth: 2,
+            tension: 0.35,
+            pointRadius: 0,
+            fill: false,
+            order: 1
+          },
+          {
+            label: `Median (P50)`,
+            data: p50,
+            borderColor: COLORS.PRED_P50,
+            borderWidth: 2,
+            tension: 0.35,
+            pointRadius: 0,
+            borderDash: [8, 4],
+            fill: false,
+            order: 2
+          },
+          {
+            label: `Lower (P10)`,
+            data: p10,
+            borderColor: COLORS.PRED_PXX,
+            borderWidth: 1,
+            tension: 0.35,
+            pointRadius: 0,
+            borderDash: [4, 4],
+            fill: false,
+            order: 4
+          },
+          {
+            label: `Upper (P90)`,
+            data: p90,
+            borderColor: COLORS.PRED_PXX,
+            borderWidth: 1,
+            tension: 0.35,
+            pointRadius: 0,
+            borderDash: [4, 4],
+            fill: '-1', // Fill down to Lower (P10) dataset
+            backgroundColor: 'rgba(109, 40, 217, 0.08)', // Shaded purple band
+            order: 3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 0 },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'end',
+            labels: { font: { size: 10, family: INTER }, usePointStyle: true, boxWidth: 6, boxHeight: 6, padding: 8 }
+          },
+          annotation: { annotations }
+        },
+        scales: {
+          x: { 
+            title: { display: true, text: 'Time (min)', font: { size: 10 }, color: COLORS.TEXT },
+            grid: { color: COLORS.GRID, drawTicks: false },
+            ticks: { maxTicksLimit: 12, font: { size: 9 }, color: COLORS.TEXT }
+          },
+          y: { 
+            title: { display: true, text: yTitle, font: { size: 10 }, color: COLORS.TEXT },
+            grid: { color: COLORS.GRID, drawTicks: false },
+            ticks: { font: { size: 9 }, color: COLORS.TEXT },
+            grace: '10%'
+          }
+        }
+      }
     };
   };
 
-  const commonOptions = {
-    responsive: true,
-    interaction: { mode: 'index', intersect: false },
-    plugins: {
-      legend: { 
-        display: true,
-        position: 'top',
-        align: 'end',
-        labels: {
-          boxWidth: 12, boxHeight: 2, padding: 10,
-          font: { size: 9, family: MONO, weight: 500 }
-        }
-      },
-      tooltip: {
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-        padding: 12,
-        titleFont: { size: 10, family: MONO },
-        bodyFont: { size: 12, family: MONO },
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1,
-        cornerRadius: 4,
-      }
-    },
-    scales: {
-      x: { 
-        display: true,
-        title: {
-          display: true,
-          text: 'Time (min)',
-          color: '#94A3B8',
-          font: { size: 9, family: MONO }
-        },
-        grid: { color: 'rgba(226, 232, 240, 0.3)' },
-        ticks: { 
-            maxRotation: 0, autoSkip: true, maxTicksLimit: 8,
-            color: '#94A3B8', font: { size: 9, family: MONO } 
-        }
-      },
-      y: { 
-        grace: '10%',
-        grid: { color: 'rgba(226, 232, 240, 0.4)' },
-        ticks: { color: '#94A3B8', font: { size: 10, family: MONO } }
-      }
-    }
-  };
-
-  const fad    = createConfig('fad_cfm', 'FAD', '#2563EB', 'fad_cfm', 'CFM');
-  const temp   = createConfig('airend_discharge_temp_c', 'Temp', '#D97706', 'airend_discharge_temp_c', '°C');
-  const power  = createConfig('motor_output_power_kw', 'Power', '#0891B2', 'motor_output_power_kw', 'kW');
+  const fad = createConfig('fad_cfm', 'FAD', 'fad_cfm', 'FAD (CFM)');
+  const temp = createConfig('airend_discharge_temp_c', 'Disc Temp', 'airend_discharge_temp_c', 'Disc Temp (°C)');
+  const power = createConfig('motor_output_power_kw', 'Motor Power', 'motor_output_power_kw', 'Motor Power (kW)');
 
   return (
     <div style={{ 
-      display: 'flex', gap: '20px', padding: '0 20px', 
-      marginBottom: '20px', overflowX: 'auto', paddingBottom: '12px'
+      display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+      gap: '8px', padding: '0 20px', marginBottom: '20px'
     }}>
-      <ChartCard 
-        title="FAD Trajectory" 
-        data={fad.data} 
-        annotations={fad.annotations}
-        yTitle="FAD (CFM)"
-        options={commonOptions}
-      />
-      <ChartCard 
-        title="Discharge Temp" 
-        data={temp.data} 
-        annotations={temp.annotations}
-        yTitle="TEMP (°C)"
-        options={commonOptions}
-      />
-      <ChartCard 
-        title="Motor Power" 
-        data={power.data} 
-        annotations={power.annotations}
-        yTitle="POWER (kW)"
-        options={commonOptions}
-      />
+      <ChartCard title="FAD Trajectory + Predicted Values">
+        <Line data={fad.data} options={fad.options} />
+      </ChartCard>
+      <ChartCard title="Disc Temp Trajectory + Predicted Values">
+        <Line data={temp.data} options={temp.options} />
+      </ChartCard>
+      <ChartCard title="Motor Power Trajectory + Predicted Values">
+        <Line data={power.data} options={power.options} />
+      </ChartCard>
     </div>
   );
 }

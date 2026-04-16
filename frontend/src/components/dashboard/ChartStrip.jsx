@@ -75,8 +75,8 @@ function makeGradient(ctx, chartArea, color) {
 function TrendArrow({ history, dataKey }) {
   if (history.length < 2) return null
   const recent = history.slice(-10)
-  const first  = recent[0]?.[dataKey]
-  const last   = recent[recent.length - 1]?.[dataKey]
+  const first  = (recent[0]?.row?.[dataKey] ?? recent[0]?.[dataKey])
+  const last   = (recent[recent.length - 1]?.row?.[dataKey] ?? recent[recent.length - 1]?.[dataKey])
   if (first == null || last == null) return null
   const delta = last - first
   const pct   = first !== 0 ? Math.abs((delta / Math.abs(first)) * 100).toFixed(1) : '0.0'
@@ -207,7 +207,8 @@ function MiniChart({ cfg, history }) {
 
     newEntries.forEach(h => {
       chart.data.labels.push(h.label)
-      chart.data.datasets[0].data.push(h[cfg.dataKey] ?? null)
+      const val = h.row?.[cfg.dataKey] ?? h[cfg.dataKey]
+      chart.data.datasets[0].data.push(val ?? null)
       ;(cfg.refs ?? []).forEach((ref, i) => {
         chart.data.datasets[i + 1].data.push(ref.y)
       })
@@ -223,7 +224,8 @@ function MiniChart({ cfg, history }) {
     chart.update('none')
   }, [history])
 
-  const latest  = history.length ? history[history.length - 1]?.[cfg.dataKey] : null
+  const hLast   = history.length ? history[history.length - 1] : null
+  const latest  = hLast?.row?.[cfg.dataKey] ?? hLast?.[cfg.dataKey]
   const display = latest != null ? Number(latest).toFixed(cfg.unit === 'kW/m³/min' ? 2 : 1) : '--'
 
   return (

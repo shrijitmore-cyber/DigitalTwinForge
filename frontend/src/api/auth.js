@@ -3,7 +3,7 @@ import axios from 'axios'
 const TOKEN_KEY = 'kes22_token'
 const USER_KEY  = 'kes22_user'
 
-export const api = axios.create({ baseURL: '/api' })
+export const api = axios.create({ baseURL: `${import.meta.env.VITE_API_URL || ''}/api` })
 
 // Attach JWT to every request automatically
 api.interceptors.request.use(cfg => {

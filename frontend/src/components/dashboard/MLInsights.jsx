@@ -102,12 +102,15 @@ export default function MLInsights({ ml }) {
           STABLE STATE FORECAST
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-           {Object.entries(ml.predicted_sensors || {}).slice(0, 4).map(([key, val]) => (
-             <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0' }}>
-                <span style={{ fontSize: '10px', color: '#6B8075', textTransform: 'capitalize' }}>{key.replace(/_/g, ' ').replace('temp c', '°C')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 600, color: '#111827', fontFamily: "'IBM Plex Mono', monospace" }}>{val.toFixed(1)}</span>
-             </div>
-           ))}
+           {Object.entries(ml.predicted_sensors || {}).slice(0, 4).map(([key, val]) => {
+             const displayVal = val?.p50 ?? val;
+             return (
+               <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0' }}>
+                  <span style={{ fontSize: '10px', color: '#6B8075', textTransform: 'capitalize' }}>{key.replace(/_/g, ' ').replace('temp c', '°C')}</span>
+                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#111827', fontFamily: "'IBM Plex Mono', monospace" }}>{typeof displayVal === 'number' ? displayVal.toFixed(1) : '--'}</span>
+               </div>
+             );
+           })}
         </div>
       </div>
     </div>
