@@ -39,6 +39,9 @@ export function SimulationProvider({ children }) {
       setFrame(data);
       setIdx(data.idx);
       setHistory((prev) => {
+        // Deduplicate identical frames if they arrive
+        if (prev.length > 0 && prev[prev.length - 1].idx === data.idx) return prev;
+
         // Enrich history with ML predictions and proper structure
         const entry = {
           ...data, // Keep the full frame structure for the checkers
@@ -55,6 +58,7 @@ export function SimulationProvider({ children }) {
       if (data.status === 'paused') setPlaying(false);
       if (data.status === 'complete') {
         setPlaying(false);
+        setHistory([]); // clear history to prevent scribbled overlapped chart lines on loop
         // Loop simulation automatically
         sock.emit('start_stream', { speed: 30, start_idx: 0 });
       }

@@ -36,58 +36,6 @@ export default function Header({ frame }) {
       <Divider />
       <Meta label="FAD"    value="127 CFM" />
 
-      {/* ── SIMULATION CONTROLS ── */}
-      <div style={{ marginLeft: '40px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <select 
-          value={speed}
-          onChange={(e) => changeSpeed(Number(e.target.value))}
-          style={{
-            padding: '4px 8px', borderRadius: '6px', border: '1px solid #E2E8E4',
-            fontSize: '12px', outline: 'none', cursor: 'pointer', background: '#FFF'
-          }}
-        >
-          <option value={1000}>Slow (1x)</option>
-          <option value={10}>Normal (10x)</option>
-          <option value={5}>Fast (50x)</option>
-          <option value={1}>Rapid (100x)</option>
-        </select>
-
-        {!playing ? (
-          <button 
-            onClick={play}
-            style={{
-              background: '#2563EB', color: '#FFF', border: 'none',
-              padding: '6px 18px', borderRadius: '6px', fontSize: '12px',
-              fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
-            }}
-          >
-            START
-          </button>
-        ) : (
-          <button 
-            onClick={pause}
-            style={{
-              background: '#DC2626', color: '#FFF', border: 'none',
-              padding: '6px 18px', borderRadius: '6px', fontSize: '12px',
-              fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
-            }}
-          >
-            STOP
-          </button>
-        )}
-
-        <button 
-          onClick={reset}
-          style={{
-            background: '#FFFFFF', color: '#DC2626', border: '1px solid #DC2626',
-            padding: '6px 18px', borderRadius: '6px', fontSize: '12px',
-            fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
-          }}
-        >
-          RESET
-        </button>
-      </div>
-
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px' }}>
         {/* Phase badge */}
         <div style={{
