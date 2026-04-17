@@ -579,9 +579,12 @@ export default function CompressorBed() {
         </header>
 
         {/* ── Body ── */}
-        <div style={{ flex: 1, display: 'flex', gap: 16, padding: '16px 20px', overflow: 'hidden', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, display: 'flex', gap: 16, padding: '16px 20px', overflow: 'hidden', alignItems: 'stretch' }}>
 
-          {/* Left: fleet bar + image */}
+          {/* Left: KPI Dashboard Side Panel */}
+          <SideDashboard />
+
+          {/* Center: fleet bar + image */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, height: '100%', minWidth: 0 }}>
 
             {/* Fleet summary bar – sits above the image */}
@@ -679,6 +682,150 @@ export default function CompressorBed() {
         </div>
       </div>
     </>
+  )
+}
+
+// ── Plant Level Persona Dashboard ─────────────────────────────────────────────
+function SideDashboard() {
+  return (
+    <div style={{
+      width: 330, flexShrink: 0,
+      background: '#FFFFFF',
+      border: '1px solid #E2E8E4',
+      borderRadius: 8,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+      display: 'flex', flexDirection: 'column',
+      overflowY: 'auto', fontFamily: SANS
+    }}>
+      {/* Plant Manager */}
+      <div style={{ padding: '18px 20px', borderBottom: '1px solid #EEF2F0' }}>
+        <h3 style={{ margin: '0 0 14px 0', fontSize: 11, color: '#6B8075', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>factory</span>
+          Plant Manager
+        </h3>
+        
+        {/* Daily Target vs Actuals */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
+            <span style={{ color: '#0A1A10', fontWeight: 600 }}>Testing Output (Today)</span>
+            <span style={{ fontFamily: MONO, fontWeight: 800, color: '#00A651', fontSize: 13 }}>42 / 50</span>
+          </div>
+          <div style={{ width: '100%', height: 6, background: '#EEF2F0', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ width: '84%', height: '100%', background: '#00A651', borderRadius: 3 }} />
+          </div>
+        </div>
+
+        {/* OEE */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+            <span style={{ color: '#0A1A10', fontWeight: 600 }}>Test Bed OEE</span>
+            <span style={{ fontFamily: MONO, fontWeight: 800, color: '#2563EB', fontSize: 13 }}>88.4%</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <div style={{ flex: 1, background: '#F4F7F5', padding: '8px 4px', borderRadius: 4, textAlign: 'center' }}>
+               <div style={{ fontSize: 9, color: '#6B8075', fontWeight: 600, letterSpacing: '0.05em' }}>AVAIL</div>
+               <div style={{ fontFamily: MONO, fontSize: 13, fontWeight: 800, color: '#0A1A10' }}>92%</div>
+            </div>
+            <div style={{ flex: 1, background: '#F4F7F5', padding: '8px 4px', borderRadius: 4, textAlign: 'center' }}>
+               <div style={{ fontSize: 9, color: '#6B8075', fontWeight: 600, letterSpacing: '0.05em' }}>PERF</div>
+               <div style={{ fontFamily: MONO, fontSize: 13, fontWeight: 800, color: '#0A1A10' }}>95%</div>
+            </div>
+            <div style={{ flex: 1, background: '#F4F7F5', padding: '8px 4px', borderRadius: 4, textAlign: 'center' }}>
+               <div style={{ fontSize: 9, color: '#6B8075', fontWeight: 600, letterSpacing: '0.05em' }}>QUAL</div>
+               <div style={{ fontFamily: MONO, fontSize: 13, fontWeight: 800, color: '#0A1A10' }}>100%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* QA / QC Manager */}
+      <div style={{ padding: '18px 20px', borderBottom: '1px solid #EEF2F0', background: 'linear-gradient(180deg, #FFFFFF 0%, #FAFBFA 100%)' }}>
+         <h3 style={{ margin: '0 0 14px 0', fontSize: 11, color: '#6B8075', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>policy</span>
+          QA / QC Manager
+        </h3>
+
+        {/* Pareto Failure Modes */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 12, color: '#0A1A10', fontWeight: 600, marginBottom: 12 }}>Top Failure Modes</div>
+          
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6B8075', marginBottom: 4 }}>
+               <span style={{ fontWeight: 500 }}>High Airend Temp</span>
+               <span style={{ fontFamily: MONO, fontWeight: 700, color: '#DC2626' }}>40%</span>
+            </div>
+            <div style={{ height: 5, background: '#EEF2F0', borderRadius: 2 }}><div style={{ width: '40%', height: '100%', background: '#DC2626', borderRadius: 2 }}/></div>
+          </div>
+          
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6B8075', marginBottom: 4 }}>
+               <span style={{ fontWeight: 500 }}>Low FAD Output</span>
+               <span style={{ fontFamily: MONO, fontWeight: 700, color: '#D97706' }}>30%</span>
+            </div>
+            <div style={{ height: 5, background: '#EEF2F0', borderRadius: 2 }}><div style={{ width: '30%', height: '100%', background: '#D97706', borderRadius: 2 }}/></div>
+          </div>
+          
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6B8075', marginBottom: 4 }}>
+               <span style={{ fontWeight: 500 }}>High Vibration</span>
+               <span style={{ fontFamily: MONO, fontWeight: 700, color: '#D97706' }}>20%</span>
+            </div>
+            <div style={{ height: 5, background: '#EEF2F0', borderRadius: 2 }}><div style={{ width: '20%', height: '100%', background: '#D97706', borderRadius: 2 }}/></div>
+          </div>
+        </div>
+
+        {/* Rework Queue */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#FEF2F2', border: '1px solid #FCA5A5', padding: '12px 14px', borderRadius: 6 }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+             <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#DC2626' }}>engineering</span>
+             <span style={{ fontSize: 12, fontWeight: 700, color: '#991B1B' }}>Rework Queue</span>
+           </div>
+           <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 800, color: '#DC2626' }}>4 Units</span>
+        </div>
+      </div>
+
+      {/* Test Floor Supervisor */}
+      <div style={{ padding: '18px 20px', flex: 1, background: '#FFFFFF' }}>
+        <h3 style={{ margin: '0 0 14px 0', fontSize: 11, color: '#6B8075', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>settings_accessibility</span>
+          Test Floor Supervisor
+        </h3>
+
+        {/* Live Bed Status */}
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 12, color: '#0A1A10', fontWeight: 600, marginBottom: 10 }}>Current Live Status</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            
+             <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', padding: '10px 12px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 11, color: '#92400E', fontWeight: 600 }}>Warmup</span>
+                <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 800, color: '#D97706' }}>2</span>
+             </div>
+             <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '10px 12px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 11, color: '#1E40AF', fontWeight: 600 }}>Stabilizing</span>
+                <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 800, color: '#2563EB' }}>1</span>
+             </div>
+             <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '10px 12px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 11, color: '#166534', fontWeight: 600 }}>Rated Run</span>
+                <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 800, color: '#00A651' }}>2</span>
+             </div>
+             <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', padding: '10px 12px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 11, color: '#4B5563', fontWeight: 600 }}>Idle</span>
+                <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 800, color: '#6B7280' }}>1</span>
+             </div>
+
+          </div>
+        </div>
+
+        {/* Queue Time */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F4F7F5', border: '1px solid #E2E8E4', padding: '12px 14px', borderRadius: 6 }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+             <span className="material-symbols-outlined" style={{ fontSize: 18, color: '#4B5563' }}>timer</span>
+             <span style={{ fontSize: 12, fontWeight: 700, color: '#0A1A10' }}>Avg. Wait Time</span>
+           </div>
+           <span style={{ fontFamily: MONO, fontSize: 16, fontWeight: 800, color: '#2563EB' }}>45 min</span>
+        </div>
+      </div>
+    </div>
   )
 }
 
