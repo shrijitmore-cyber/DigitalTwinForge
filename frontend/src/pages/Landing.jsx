@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import logo from '../assets/logo.png'
 
 /* ─── Kirloskar K-mark ─── */
 
@@ -34,7 +35,7 @@ export default function Landing() {
         <header className="l-nav">
           <div className="l-nav-left">
             <Link to="/" className="l-brand">
-               <span className="l-brand-name">INDI4</span>
+               <img src={logo} alt="INDI4 Logo" style={{ height: '36px', objectFit: 'contain' }} />
             </Link>
             <nav className="l-nav-links">
               <a className="l-navlink l-navlink--active" href="#">OVERVIEW</a>
@@ -207,7 +208,7 @@ export default function Landing() {
         {/* ── Footer ── */}
         <footer className="l-footer">
           <div className="l-footer-left">
-            <span className="l-footer-brand">INDI4</span>
+            <img src={logo} alt="INDI4 Logo" style={{ height: '24px', objectFit: 'contain' }} />
             <span className="l-footer-copy">© 2025 Indi4 Pneumatic Co. Ltd · Digital Twin Platform</span>
           </div>
           <div className="l-footer-right">

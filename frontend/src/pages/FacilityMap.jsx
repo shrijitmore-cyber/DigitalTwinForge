@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useAuth } from '../context/AuthContext'
 import 'leaflet/dist/leaflet.css'
+import logo from '../assets/logo.png'
 
 const MONO = "'IBM Plex Mono', monospace"
 const SANS = "'IBM Plex Sans', sans-serif"
@@ -340,7 +341,7 @@ export default function FacilityMap() {
           background: '#FFFFFF', borderBottom: '1px solid #E2E8E4',
           fontFamily: MONO, zIndex: 2000,
         }}>
-          <span style={{ fontSize: '22px', fontWeight: 800, color: '#2563EB', letterSpacing: '0.05em' }}>INDI4</span>
+          <img src={logo} alt="INDI4 Logo" style={{ height: '32px', objectFit: 'contain', cursor: 'pointer' }} onClick={() => navigate('/')} />
           <div style={{ width: 1, height: 28, background: '#E2E8E4' }}/>
           <span style={{ fontSize: '13px', color: '#6B8075' }}>Facility Operations Centre</span>
           <div style={{ width: 1, height: 28, background: '#E2E8E4' }}/>

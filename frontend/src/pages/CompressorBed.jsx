@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import logo from '../assets/logo.png'
 
 const MONO = "'IBM Plex Mono', monospace"
 const SANS = "'IBM Plex Sans', sans-serif"
@@ -517,10 +518,11 @@ export default function CompressorBed() {
           background: '#FFFFFF', borderBottom: '1px solid #E2E8E4',
           fontFamily: MONO, zIndex: 100,
         }}>
-          <span
-            style={{ fontSize: '22px', fontWeight: 800, color: '#2563EB', letterSpacing: '0.05em', cursor: 'pointer' }}
+          <img 
+            src={logo} alt="INDI4 Logo" 
+            style={{ height: '32px', objectFit: 'contain', cursor: 'pointer' }}
             onClick={() => navigate('/map')}
-          >INDI4</span>
+          />
 
           <div style={{ width: 1, height: 28, background: '#E2E8E4' }}/>
 

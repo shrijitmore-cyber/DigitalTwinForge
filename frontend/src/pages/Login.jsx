@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import logo from '../assets/logo.png'
 
 
 
@@ -36,7 +37,7 @@ export default function Login() {
           <Link to="/" className="lg-logo">
 
             <div>
-              <span className="lg-logo-name">INDI4</span>
+              <img src={logo} alt="INDI4 Logo" style={{ height: '40px', objectFit: 'contain' }} />
               <span className="lg-logo-sub">KES 22-8.5 · Digital Twin Platform</span>
             </div>
           </Link>

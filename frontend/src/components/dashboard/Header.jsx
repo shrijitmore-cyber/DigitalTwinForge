@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useSimulation } from '../../context/SimulationContext'
+import logo from '../../assets/logo.png'
 
 export default function Header({ frame }) {
   const { user, logout } = useAuth()
@@ -27,7 +28,7 @@ export default function Header({ frame }) {
       borderBottom: '1px solid #E2E8E4',
       fontFamily: "'Inter', sans-serif",
     }}>
-      <span style={{ fontSize: '18px', fontWeight: 800, color: '#2563EB', letterSpacing: '0.05em' }}>INDI4</span>
+      <img src={logo} alt="INDI4 Logo" style={{ height: '24px', objectFit: 'contain' }} />
 
       <Divider />
       <Meta label="Serial" value="SCR0010046 T1" />
