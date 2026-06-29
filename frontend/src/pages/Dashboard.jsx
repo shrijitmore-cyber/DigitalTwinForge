@@ -28,6 +28,7 @@ export default function Dashboard() {
   } = useSimulation();
   
   const [showHealth, setShowHealth] = useState(false)
+  const [showPanel, setShowPanel]   = useState(false)
 
   const phase      = frame?.display?.phase_label ?? 'IDLE'
   const phaseColor = PHASE_COLOR[phase] ?? '#00A651'
@@ -144,6 +145,22 @@ export default function Dashboard() {
                 HEALTH
               </button>
               
+              <button
+                onClick={() => setShowPanel(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  padding: '3px 11px', borderRadius: '2px', cursor: 'pointer',
+                  border: `1px solid ${showPanel ? '#00A651' : '#C5D5CB'}`,
+                  background: showPanel ? 'rgba(0,166,81,0.08)' : '#FFFFFF',
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: '10px', letterSpacing: '0.12em',
+                  color: showPanel ? '#00A651' : '#6B8A78',
+                  fontWeight: 600, transition: 'all 0.15s',
+                }}
+              >
+                <span style={{ fontSize: '8px' }}>◧</span>
+                PANEL
+              </button>
               <Link
                 to="/analytics"
                 style={{
@@ -186,16 +203,39 @@ export default function Dashboard() {
 
         </div>{/* end left column */}
 
-        {/* ── Right column: metrics only, full height, scrollable ── */}
-        <div style={{
-          width: '280px', flexShrink: 0,
-          display: 'flex', flexDirection: 'column',
-          overflow: 'hidden',
-          borderLeft: '1px solid #E2E8E4',
-          background: '#FFFFFF',
-        }}>
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-            <RightPanel frame={frame} />
+        {/* ── Right column: collapsible metrics panel ── */}
+        <div style={{ position: 'relative', flexShrink: 0, display: 'flex' }}>
+          {/* Edge tab — always visible */}
+          <button
+            onClick={() => setShowPanel(v => !v)}
+            style={{
+              position: 'absolute', left: showPanel ? '-14px' : '-14px',
+              top: '50%', transform: 'translateY(-50%)',
+              width: '14px', height: '48px', zIndex: 10,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: '#FFFFFF', border: '1px solid #E2E8E4',
+              borderRight: showPanel ? 'none' : '1px solid #E2E8E4',
+              borderRadius: '4px 0 0 4px', cursor: 'pointer',
+              color: '#6B8A78', fontSize: '10px',
+              transition: 'all 0.2s',
+            }}
+            title={showPanel ? 'Hide panel' : 'Show panel'}
+          >
+            {showPanel ? '›' : '‹'}
+          </button>
+
+          <div style={{
+            width: showPanel ? '280px' : '0px',
+            flexShrink: 0,
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden',
+            borderLeft: showPanel ? '1px solid #E2E8E4' : 'none',
+            background: '#FFFFFF',
+            transition: 'width 0.25s ease-in-out',
+          }}>
+            <div style={{ width: '280px', flex: 1, overflowY: 'auto', minHeight: 0 }}>
+              <RightPanel frame={frame} />
+            </div>
           </div>
         </div>
       </div>

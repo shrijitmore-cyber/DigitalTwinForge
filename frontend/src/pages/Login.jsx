@@ -20,7 +20,11 @@ export default function Login() {
       await login(form.username, form.password)
       navigate('/map', { replace: true })
     } catch (err) {
-      setError(err?.response?.data?.detail || 'Login failed. Check credentials.')
+      const detail = err?.response?.data?.detail
+      const msg = typeof detail === 'string' ? detail
+        : Array.isArray(detail) ? detail.map(d => d.msg).join('; ')
+        : 'Login failed. Check credentials.'
+      setError(msg)
     } finally {
       setLoading(false)
     }
